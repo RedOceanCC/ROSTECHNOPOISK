@@ -1,9 +1,14 @@
 const database = require('../models/Database');
+const NotificationLogger = require('../utils/notificationLogger');
 
 class NotificationService {
   // Создание уведомления
   static async sendNotification(userId, notificationData) {
+    const startTime = Date.now();
+    
     try {
+      NotificationLogger.debug('Создание уведомления начато', { userId, type: notificationData.type });
+      
       const { type, title, message } = notificationData;
       
       const sql = `
@@ -13,22 +18,34 @@ class NotificationService {
       
       const result = await database.run(sql, [userId, type, title, message]);
       
-      // TODO: Здесь будет отправка через Telegram Bot
-      await this.sendTelegramNotification(userId, { title, message });
+      NotificationLogger.logNotificationCreated(userId, notificationData, result.id);
       
-      console.log(`📧 Уведомление отправлено пользователю #${userId}: ${title}`);
+      // Отправка через Telegram Bot
+      try {
+        await this.sendTelegramNotification(userId, { title, message });
+        NotificationLogger.logTelegramSent(userId, title, true);
+      } catch (telegramError) {
+        NotificationLogger.logTelegramSent(userId, title, false, telegramError);
+      }
+      
+      const duration = Date.now() - startTime;
+      NotificationLogger.logPerformance('sendNotification', duration, { userId, notificationId: result.id });
       
       return result.id;
       
     } catch (error) {
-      console.error('❌ Ошибка при отправке уведомления:', error);
+      NotificationLogger.logNotificationError(userId, notificationData, error);
       throw error;
     }
   }
   
   // Получение уведомлений пользователя
   static async getUserNotifications(userId, limit = 50) {
+    const startTime = Date.now();
+    
     try {
+      NotificationLogger.debug('Получение уведомлений начато', { userId, limit });
+      
       const sql = `
         SELECT * FROM notifications 
         WHERE user_id = ? 
@@ -36,10 +53,17 @@ class NotificationService {
         LIMIT ?
       `;
       
-      return await database.all(sql, [userId, limit]);
+      const notifications = await database.all(sql, [userId, limit]);
+      
+      NotificationLogger.logNotificationsFetched(userId, notifications.length, { limit });
+      
+      const duration = Date.now() - startTime;
+      NotificationLogger.logPerformance('getUserNotifications', duration, { userId, count: notifications.length });
+      
+      return notifications;
       
     } catch (error) {
-      console.error('❌ Ошибка при получении уведомлений:', error);
+      NotificationLogger.logNotificationError(userId, { operation: 'getUserNotifications' }, error);
       throw error;
     }
   }

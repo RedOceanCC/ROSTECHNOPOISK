@@ -822,13 +822,27 @@ class NotificationCenter {
   // Загрузить уведомления с сервера
   async loadNotifications() {
     try {
+      console.log('🔄 Начинаем загрузку уведомлений с сервера...');
+      
       // Проверяем, авторизован ли пользователь
       if (!window.apiRequest) {
-        console.warn('API недоступно, используем локальные уведомления');
+        console.warn('❌ API недоступно, используем локальные уведомления');
+        console.log('💡 На проде должен быть доступен window.apiRequest');
         return;
       }
 
+      console.log('✅ window.apiRequest доступен, отправляем запрос...');
+      const startTime = Date.now();
+      
       const response = await window.apiRequest('/notifications');
+      const duration = Date.now() - startTime;
+      
+      console.log(`📊 Ответ от сервера получен за ${duration}ms:`, {
+        success: response.success,
+        notificationsCount: response.notifications?.length || 0,
+        response: response
+      });
+      
       if (response.success) {
         // Преобразуем серверные уведомления в формат фронтенда
         this.notifications = response.notifications.map(notification => ({
@@ -840,14 +854,34 @@ class NotificationCenter {
           read: notification.read_at !== null
         }));
         
+        console.log(`📥 Загружено ${this.notifications.length} уведомлений:`, this.notifications);
+        
         this.updateBadges();
         this.lastUpdateTime = new Date();
         
+        console.log('🔔 Счетчики обновлены, запускаем периодическое обновление...');
+        
         // Запускаем периодическое обновление
         this.startPolling();
+      } else {
+        console.warn('⚠️ Сервер вернул success: false:', response);
       }
     } catch (error) {
-      console.warn('Ошибка загрузки уведомлений с сервера:', error);
+      console.error('❌ Ошибка загрузки уведомлений с сервера:', {
+        message: error.message,
+        stack: error.stack,
+        error: error
+      });
+      
+      // Отправляем ошибку в систему логирования если доступна
+      if (window.clientLogger) {
+        window.clientLogger.error('Ошибка загрузки уведомлений', {
+          error: error.message,
+          stack: error.stack,
+          apiAvailable: !!window.apiRequest
+        });
+      }
+      
       // Продолжаем работу с локальными уведомлениями
     }
   }

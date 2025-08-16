@@ -3,6 +3,7 @@ const router = express.Router();
 const NotificationService = require('../services/NotificationService');
 const { requireAuth } = require('../middleware/auth');
 const logger = require('../utils/logger');
+const NotificationLogger = require('../utils/notificationLogger');
 
 // Применяем авторизацию ко всем роутам
 router.use(requireAuth);
@@ -13,6 +14,8 @@ router.get('/', async (req, res, next) => {
     const userId = req.user.id;
     const limit = parseInt(req.query.limit) || 50;
     
+    NotificationLogger.logApiRequest('GET', '/api/notifications', userId, { limit });
+    
     const notifications = await NotificationService.getUserNotifications(userId, limit);
     
     logger.debug('Получены уведомления пользователя', {
@@ -21,12 +24,15 @@ router.get('/', async (req, res, next) => {
       notifications_count: notifications.length
     });
     
+    NotificationLogger.logApiRequest('GET', '/api/notifications', userId, { limit }, 200);
+    
     res.json({
       success: true,
       notifications: notifications
     });
     
   } catch (error) {
+    NotificationLogger.logApiRequest('GET', '/api/notifications', req.user?.id, { limit }, 500);
     logger.error('Ошибка получения уведомлений', {
       user_id: req.user.id,
       error: error.message
