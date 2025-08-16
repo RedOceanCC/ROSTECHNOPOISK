@@ -98,6 +98,12 @@ app.use((req, res, next) => {
 app.use(requestLogger);
 app.use(logRequest);
 
+// Логирование всех запросов к /telegram
+app.use('/telegram', (req, res, next) => {
+  console.log('📱 Telegram запрос:', req.method, req.url, req.path);
+  next();
+});
+
 // Статические файлы для Telegram WebApp (должны быть ПЕРЕД фронтендом)
 const telegramPath = path.join(__dirname, '../telegram-webapp');
 console.log('🤖 Telegram WebApp путь:', telegramPath);
@@ -155,6 +161,16 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     version: '1.0.0'
   });
+});
+
+// Прямой тестовый роут для Telegram
+app.get('/telegram/test-direct', (req, res) => {
+  res.send(`
+    <h1>✅ Прямой роут работает!</h1>
+    <p>Время: ${new Date().toLocaleString()}</p>
+    <p>Node ENV: ${process.env.NODE_ENV}</p>
+    <p>Telegram Bot Token: ${process.env.TELEGRAM_BOT_TOKEN ? 'Установлен' : 'Не установлен'}</p>
+  `);
 });
 
 // Диагностический роут для Telegram
