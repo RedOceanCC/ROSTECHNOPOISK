@@ -88,12 +88,7 @@
     ]
   },
   "dependencies": {
-    "bcryptjs": "^3.0.2",
-    "chalk": "^5.5.0",
-    "chokidar": "^4.0.3",
-    "colors": "^1.4.0",
-    "concurrently": "^8.2.2",
     "dotenv": "^17.2.1",
-    "ws": "^8.18.3"
+    "concurrently": "^8.2.2"
   }
 }

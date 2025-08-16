@@ -148,14 +148,7 @@ router.post('/',
       
       const request = await RentalRequest.create(requestData);
       
-      // Отправляем уведомления владельцам техники через Telegram
-      try {
-        const { notifyNewRequest } = require('../telegram-bot');
-        await notifyNewRequest(request.id);
-      } catch (telegramError) {
-        console.error('Ошибка отправки Telegram уведомлений:', telegramError.message);
-        // Не останавливаем выполнение, если Telegram недоступен
-      }
+      // TODO: Отправить уведомления владельцам техники через Telegram
       
       res.status(201).json({
         success: true,
