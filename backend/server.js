@@ -105,35 +105,14 @@ app.use('/telegram', (req, res, next) => {
 });
 
 // Статические файлы для Telegram WebApp (должны быть ПЕРЕД фронтендом)
-const telegramPath = path.join(__dirname, '../telegram-webapp');
-console.log('🤖 Telegram WebApp путь:', telegramPath);
-console.log('🤖 Файл существует:', require('fs').existsSync(path.join(telegramPath, 'request.html')));
+const telegramWebappPath = path.join(__dirname, '../telegram-webapp');
+console.log('🤖 Telegram WebApp настроен:', telegramWebappPath);
 
-// Пробуем разные возможные пути
-const possiblePaths = [
-  path.join(__dirname, '../telegram-webapp'),
-  path.join(__dirname, '../../telegram-webapp'),
-  path.join(process.cwd(), 'telegram-webapp'),
-  path.join(__dirname, '../../../telegram-webapp')
-];
-
-let telegramWebappPath = null;
-for (const testPath of possiblePaths) {
-  if (require('fs').existsSync(path.join(testPath, 'request.html'))) {
-    telegramWebappPath = testPath;
-    console.log('✅ Telegram WebApp найден в:', testPath);
-    break;
-  } else {
-    console.log('❌ Не найден в:', testPath);
-  }
-}
-
-if (telegramWebappPath) {
+if (require('fs').existsSync(path.join(telegramWebappPath, 'request.html'))) {
   app.use('/telegram', express.static(telegramWebappPath));
+  console.log('✅ Telegram WebApp активирован');
 } else {
-  console.error('❌ КРИТИЧЕСКАЯ ОШИБКА: Telegram WebApp файлы не найдены!');
-  console.log('📁 Текущая директория:', process.cwd());
-  console.log('📁 __dirname:', __dirname);
+  console.error('❌ Telegram WebApp файлы не найдены:', telegramWebappPath);
 }
 
 // Статические файлы (для фронтенда)
