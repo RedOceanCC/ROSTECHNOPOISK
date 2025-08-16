@@ -2,7 +2,24 @@
 
 // Проверка авторизации
 const requireAuth = (req, res, next) => {
+  // Отладочное логирование
+  const logger = require('../utils/logger');
+  logger.debug('Auth check', {
+    hasSession: !!req.session,
+    hasUser: !!(req.session && req.session.user),
+    sessionId: req.sessionID,
+    cookies: req.headers.cookie,
+    userAgent: req.headers['user-agent']
+  });
+  
   if (!req.session || !req.session.user) {
+    logger.warn('Authorization failed - no session or user', {
+      hasSession: !!req.session,
+      sessionId: req.sessionID,
+      url: req.originalUrl,
+      method: req.method
+    });
+    
     return res.status(401).json({
       success: false,
       message: 'Необходима авторизация'

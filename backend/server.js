@@ -25,6 +25,7 @@ const equipmentRoutes = require('./routes/equipment');
 const requestRoutes = require('./routes/requests');
 const bidRoutes = require('./routes/bids');
 const telegramRoutes = require('./routes/telegram');
+const logRoutes = require('./routes/logs');
 
 // Импорт сервисов
 const AuctionService = require('./services/AuctionService');
@@ -62,10 +63,12 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // HTTPS в продакшене
+    secure: process.env.NODE_ENV === 'production' && process.env.HTTPS === 'true', // HTTPS только если SSL настроен
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 часа
-  }
+    maxAge: 24 * 60 * 60 * 1000, // 24 часа
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' // Для CORS в продакшене
+  },
+  name: 'rostechnopoisk.sid' // Уникальное имя сессии
 }));
 
 // Подробное логирование запросов
@@ -85,6 +88,7 @@ app.use('/api/equipment', equipmentRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/bids', bidRoutes);
 app.use('/api/telegram', telegramRoutes);
+app.use('/api/logs', logRoutes);
 
 
 // Роут для проверки здоровья сервера

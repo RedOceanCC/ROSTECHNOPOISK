@@ -369,5 +369,6 @@ module.exports = {
   restoreFromBackup, 
   checkDatabaseIntegrity,
   listBackups,
-  cleanupOldBackups
+  cleanupOldBackups,
+  getDataStats
 };
