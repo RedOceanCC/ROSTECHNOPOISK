@@ -117,7 +117,45 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Статические файлы для Telegram WebApp
-app.use('/telegram', express.static(path.join(__dirname, '../telegram-webapp')));
+const telegramWebappPath = path.join(__dirname, '../telegram-webapp');
+console.log(`📱 Telegram WebApp путь: ${telegramWebappPath}`);
+
+// Проверяем существование директории
+const fs = require('fs');
+if (fs.existsSync(telegramWebappPath)) {
+  console.log('✅ Директория telegram-webapp найдена');
+  
+  // Проверяем файл request.html
+  const requestHtmlPath = path.join(telegramWebappPath, 'request.html');
+  if (fs.existsSync(requestHtmlPath)) {
+    console.log('✅ Файл request.html найден');
+  } else {
+    console.log('❌ Файл request.html НЕ найден в:', requestHtmlPath);
+  }
+} else {
+  console.log('❌ Директория telegram-webapp НЕ найдена:', telegramWebappPath);
+  console.log('🔍 Попробуем альтернативные пути...');
+  
+  // Проверяем альтернативные пути
+  const altPaths = [
+    path.join(__dirname, '../../telegram-webapp'),  // На уровень выше
+    '/root/ROSTECHNOPOISK/telegram-webapp',         // Абсолютный путь
+    './telegram-webapp'                             // Относительно текущей директории
+  ];
+  
+  for (const altPath of altPaths) {
+    console.log(`🔍 Проверяем: ${altPath}`);
+    if (fs.existsSync(altPath)) {
+      console.log(`✅ Найдена директория: ${altPath}`);
+      app.use('/telegram', express.static(altPath));
+      return;
+    }
+  }
+  
+  console.log('❌ Директория telegram-webapp не найдена ни по одному из путей');
+}
+
+app.use('/telegram', express.static(telegramWebappPath));
 
 // API роуты
 app.use('/api/auth', authRoutes);
@@ -139,6 +177,36 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     version: '1.0.0'
   });
+});
+
+// Отладочный роут для проверки Telegram WebApp
+app.get('/telegram/debug', (req, res) => {
+  const fs = require('fs');
+  const paths = [
+    path.join(__dirname, '../telegram-webapp'),
+    path.join(__dirname, '../../telegram-webapp'),
+    '/root/ROSTECHNOPOISK/telegram-webapp',
+    './telegram-webapp'
+  ];
+  
+  const debugInfo = {
+    currentDir: __dirname,
+    paths: {},
+    files: {}
+  };
+  
+  paths.forEach(testPath => {
+    debugInfo.paths[testPath] = fs.existsSync(testPath);
+    if (fs.existsSync(testPath)) {
+      try {
+        debugInfo.files[testPath] = fs.readdirSync(testPath);
+      } catch (error) {
+        debugInfo.files[testPath] = `Error: ${error.message}`;
+      }
+    }
+  });
+  
+  res.json(debugInfo);
 });
 
 // Обслуживание фронтенда в продакшене
