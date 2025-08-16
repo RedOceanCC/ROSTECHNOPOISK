@@ -144,13 +144,13 @@ async function startServer() {
         port: PORT,
         mode: process.env.NODE_ENV || 'development',
         apiUrl: `http://localhost:${PORT}/api`,
-        database: process.env.DB_PATH || './database/rostechnopolsk.db'
+        database: process.env.DB_PATH || path.join(__dirname, 'database/rostechnopolsk.db')
       });
       
       console.log(`🚀 Сервер РОСТЕХНОПОИСК запущен на порту ${PORT}`);
       console.log(`📊 Режим: ${process.env.NODE_ENV || 'development'}`);
       console.log(`🔗 API доступно по адресу: http://localhost:${PORT}/api`);
-      console.log(`💾 База данных: ${process.env.DB_PATH || './database/rostechnopolsk.db'}`);
+      console.log(`💾 База данных: ${process.env.DB_PATH || path.join(__dirname, 'database/rostechnopolsk.db')}`);
       
       if (process.env.NODE_ENV !== 'production') {
         console.log(`\n🎯 Демо пароли для входа:`);

@@ -1,0 +1,6 @@
+---
+description: 
+globs: **/*.js
+alwaysApply: false
+---
+- JSDoc Comments: Use JSDoc comments for JavaScript and modern ES6 syntax.

@@ -1,27 +1,60 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const { getDatabaseConfig, getConnectionOptions, checkDatabaseVersion } = require('../config/database');
 
 class Database {
   constructor() {
     this.db = null;
+    this.config = null;
   }
 
   // Подключение к базе данных
   connect() {
     return new Promise((resolve, reject) => {
-      const dbPath = process.env.DB_PATH || './database/rostechnopolsk.db';
-      
-      this.db = new sqlite3.Database(dbPath, (err) => {
-        if (err) {
-          console.error('Ошибка подключения к базе данных:', err.message);
-          reject(err);
-        } else {
-          console.log('✅ Подключение к SQLite базе данных установлено');
-          // Включаем поддержку внешних ключей
-          this.db.run('PRAGMA foreign_keys = ON');
-          resolve();
+      try {
+        // Получаем конфигурацию для текущей среды
+        this.config = getDatabaseConfig();
+        const connectionOptions = getConnectionOptions(this.config);
+        
+        // Проверяем версию SQLite
+        if (!checkDatabaseVersion()) {
+          console.warn('⚠️  Обнаружена устаревшая версия SQLite');
         }
-      });
+        
+        const dbPath = this.config.database;
+      
+        this.db = new sqlite3.Database(dbPath, (err) => {
+          if (err) {
+            console.error('Ошибка подключения к базе данных:', err.message);
+            reject(err);
+          } else {
+            console.log(`✅ Подключение к SQLite базе данных установлено (${process.env.NODE_ENV || 'local'})`);
+            console.log(`📊 База данных: ${dbPath}`);
+            
+            // Применяем PRAGMA настройки
+            const pragmas = connectionOptions.pragma || { foreign_keys: true };
+            const pragmaPromises = Object.entries(pragmas).map(([key, value]) => {
+              return new Promise((resolve, reject) => {
+                this.db.run(`PRAGMA ${key} = ${value}`, (err) => {
+                  if (err) {
+                    console.warn(`⚠️  Не удалось установить PRAGMA ${key}: ${err.message}`);
+                    resolve(); // Не прерываем из-за pragma
+                  } else {
+                    if (this.config.logging) {
+                      console.log(`📋 PRAGMA ${key} = ${value}`);
+                    }
+                    resolve();
+                  }
+                });
+              });
+            });
+            
+            Promise.all(pragmaPromises).then(() => resolve()).catch(reject);
+          }
+        });
+      } catch (configError) {
+        reject(configError);
+      }
     });
   }
 
@@ -139,6 +172,35 @@ class Database {
   // Получение экземпляра базы данных
   getInstance() {
     return this.db;
+  }
+
+  // Получение конфигурации
+  getConfig() {
+    return this.config;
+  }
+
+  // Получение информации о состоянии БД
+  async getStatus() {
+    const { getDatabaseStatus } = require('../config/database');
+    return await getDatabaseStatus();
+  }
+
+  // Проверка подключения
+  async ping() {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error('База данных не подключена'));
+        return;
+      }
+      
+      this.db.get('SELECT 1 as ping', (err, row) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(row.ping === 1);
+        }
+      });
+    });
   }
 }
 

@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 
-const DB_PATH = process.env.DB_PATH || './database/rostechnopolsk.db';
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'rostechnopolsk.db');
 
 // Создание и инициализация базы данных
 async function initDatabase() {
@@ -246,7 +246,7 @@ async function createEquipmentTypesTable(db) {
 
 // Импорт каталога техники из CSV
 async function importEquipmentCatalog(db) {
-  const csvPath = path.join(__dirname, '../../Special_Equipment_Catalog.csv');
+  const csvPath = process.env.EQUIPMENT_CATALOG_PATH || path.join(process.cwd(), 'Special_Equipment_Catalog.csv');
   
   if (!fs.existsSync(csvPath)) {
     console.log('⚠️ CSV файл каталога не найден, пропускаем импорт');

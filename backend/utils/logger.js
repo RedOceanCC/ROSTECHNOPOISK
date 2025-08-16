@@ -3,7 +3,7 @@ const path = require('path');
 
 class Logger {
   constructor() {
-    this.logDir = path.join(__dirname, '../logs');
+    this.logDir = process.env.LOG_DIR || path.join(__dirname, '../logs');
     this.ensureLogDir();
     this.logLevel = process.env.LOG_LEVEL || 'info';
     this.maxLogSize = 10 * 1024 * 1024; // 10MB

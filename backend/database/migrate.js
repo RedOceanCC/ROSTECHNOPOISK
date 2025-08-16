@@ -108,7 +108,7 @@ async function runMigrations() {
     // 2. Импортируем каталог техники
     logger.info('Импорт каталога техники из CSV');
     const importer = new EquipmentCatalogImporter(database);
-    const csvPath = path.join(__dirname, '../../Special_Equipment_Catalog.csv');
+    const csvPath = process.env.EQUIPMENT_CATALOG_PATH || path.join(process.cwd(), 'Special_Equipment_Catalog.csv');
     
     if (fs.existsSync(csvPath)) {
       const result = await importer.importFromCSV(csvPath);

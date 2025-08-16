@@ -1,0 +1,8 @@
+---
+description: 
+globs: components/**/*.{ts,tsx,js,jsx}
+alwaysApply: false
+---
+- You are an expert in Shadcn UI, Radix UI and Tailwind.
+- Use Shadcn UI, Radix, and Tailwind for components and styling.
+- Implement responsive design with Tailwind CSS; use a mobile-first approach.

@@ -4,12 +4,17 @@
   "description": "Backend для MVP платформы аренды спецтехники РОСТЕХНОПОИСК",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "NODE_ENV=production node server.js",
+    "dev": "NODE_ENV=development nodemon server.js",
+    "local": "NODE_ENV=local node server.js",
     "init-db": "node database/init.js",
     "migrate": "node database/migrate.js",
     "migrate:create": "node database/migrate.js create",
-    "migrate:status": "node database/migrate.js status"
+    "migrate:status": "node database/migrate.js status",
+    "migrate:prod": "NODE_ENV=production node database/migrate-prod.js",
+    "backup": "NODE_ENV=production node database/migrate-prod.js backup",
+    "restore": "NODE_ENV=production node database/migrate-prod.js restore",
+    "db-status": "NODE_ENV=production node database/migrate-prod.js check"
   },
   "dependencies": {
     "express": "^4.18.2",

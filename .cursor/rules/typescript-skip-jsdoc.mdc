@@ -1,0 +1,6 @@
+---
+description: 
+globs: **/*.ts
+alwaysApply: false
+---
+- JSDoc Comments: Do not use JSDoc comments because this is TypeScript and types are defined.
