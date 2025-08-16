@@ -30,6 +30,13 @@ const logRoutes = require('./routes/logs');
 // Импорт сервисов
 const AuctionService = require('./services/AuctionService');
 
+// Импорт Telegram бота
+let TelegramWebApp = null;
+let telegramBot = null;
+if (process.env.TELEGRAM_BOT_TOKEN) {
+  TelegramWebApp = require('./telegram-bot');
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -96,6 +103,9 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../frontend/build')));
 }
 
+// Статические файлы для Telegram WebApp
+app.use('/telegram', express.static(path.join(__dirname, '../telegram-webapp')));
+
 // API роуты
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -159,19 +169,38 @@ async function startServer() {
     await runMigrations();
     logger.info('Миграции выполнены успешно');
     
+    // Инициализируем Telegram бота если токен установлен
+    if (process.env.TELEGRAM_BOT_TOKEN && TelegramWebApp) {
+      telegramBot = new TelegramWebApp();
+      
+      // Добавляем роуты Telegram WebApp
+      TelegramWebApp.setupRoutes(app);
+      
+      logger.info('Telegram бот инициализирован');
+      console.log('🤖 Telegram бот запущен');
+    } else {
+      logger.warn('TELEGRAM_BOT_TOKEN не установлен, бот не запущен');
+      console.log('⚠️  TELEGRAM_BOT_TOKEN не установлен, бот не запущен');
+    }
+    
     // Запускаем сервер
     app.listen(PORT, () => {
       logger.info(`Сервер РОСТЕХНОПОИСК запущен на порту ${PORT}`, {
         port: PORT,
         mode: process.env.NODE_ENV || 'development',
         apiUrl: `http://localhost:${PORT}/api`,
-        database: process.env.DB_PATH || path.join(__dirname, 'database/rostechnopolsk.db')
+        database: process.env.DB_PATH || path.join(__dirname, 'database/rostechnopolsk.db'),
+        telegramBot: !!telegramBot
       });
       
       console.log(`🚀 Сервер РОСТЕХНОПОИСК запущен на порту ${PORT}`);
       console.log(`📊 Режим: ${process.env.NODE_ENV || 'development'}`);
       console.log(`🔗 API доступно по адресу: http://localhost:${PORT}/api`);
       console.log(`💾 База данных: ${process.env.DB_PATH || path.join(__dirname, 'database/rostechnopolsk.db')}`);
+      
+      if (telegramBot) {
+        console.log(`🤖 Telegram WebApp: http://localhost:${PORT}/telegram/`);
+      }
       
       if (process.env.NODE_ENV !== 'production') {
         console.log(`\n🎯 Демо пароли для входа:`);
