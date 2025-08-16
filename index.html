@@ -142,7 +142,7 @@
                         </div>
                     </div>
 
-                    <!-- Вкладка Уведомления -->
+                                            <!-- Вкладка Уведомления -->
                     <div id="notifications-tab" class="tab-content">
                         <div class="dashboard-header">
                             <h2>Уведомления</h2>
@@ -151,10 +151,10 @@
                         
                         <div class="notifications-container">
                             <div class="notifications-controls">
-                                <button class="btn btn--primary" id="test-notification-btn">
+                                <button class="btn btn--primary" id="admin-test-notification-btn">
                                     Создать тестовое уведомление
                                 </button>
-                                <button class="btn btn--secondary" id="mark-all-read-btn">
+                                <button class="btn btn--secondary" id="admin-mark-all-read-btn">
                                     Отметить все как прочитанные
                                 </button>
                             </div>
@@ -208,6 +208,31 @@
                             <h2>Заявки на мою технику</h2>
                         </div>
                         <div id="owner-orders-grid" class="orders-grid">
+                        </div>
+                    </div>
+
+                    <!-- Вкладка Уведомления для Владельца -->
+                    <div id="notifications-tab" class="tab-content">
+                        <div class="dashboard-header">
+                            <h2>Уведомления</h2>
+                            <p class="text-secondary">Просматривайте уведомления о новых заявках и результатах аукционов</p>
+                        </div>
+                        
+                        <div class="notifications-container">
+                            <div class="notifications-controls">
+                                <button class="btn btn--primary" id="owner-test-notification-btn">
+                                    Создать тестовое уведомление
+                                </button>
+                                <button class="btn btn--secondary" id="owner-mark-all-read-btn">
+                                    Отметить все как прочитанные
+                                </button>
+                            </div>
+                            
+                            <div class="notifications-list" id="notifications-list">
+                                <div class="loading-spinner" id="notifications-loading">
+                                    Загрузка уведомлений...
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </main>
@@ -288,6 +313,31 @@
                             <h2>Мои заявки</h2>
                         </div>
                         <div id="manager-orders-grid" class="orders-grid">
+                        </div>
+                    </div>
+
+                    <!-- Вкладка Уведомления для Менеджера -->
+                    <div id="notifications-tab" class="tab-content">
+                        <div class="dashboard-header">
+                            <h2>Уведомления</h2>
+                            <p class="text-secondary">Получайте уведомления о результатах ваших аукционов</p>
+                        </div>
+                        
+                        <div class="notifications-container">
+                            <div class="notifications-controls">
+                                <button class="btn btn--primary" id="manager-test-notification-btn">
+                                    Создать тестовое уведомление
+                                </button>
+                                <button class="btn btn--secondary" id="manager-mark-all-read-btn">
+                                    Отметить все как прочитанные
+                                </button>
+                            </div>
+                            
+                            <div class="notifications-list" id="notifications-list">
+                                <div class="loading-spinner" id="notifications-loading">
+                                    Загрузка уведомлений...
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </main>

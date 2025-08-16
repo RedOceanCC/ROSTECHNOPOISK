@@ -1910,11 +1910,18 @@ function formatBidsCount(count) {
 
 // Инициализация системы уведомлений
 function initializeNotifications() {
-  // Обработчик кнопки тестового уведомления
-  const testNotificationBtn = document.getElementById('test-notification-btn');
-  if (testNotificationBtn) {
-    testNotificationBtn.addEventListener('click', async () => {
-      try {
+  // Обработчики кнопок тестовых уведомлений для всех ролей
+  const testNotificationBtns = [
+    'admin-test-notification-btn',
+    'owner-test-notification-btn', 
+    'manager-test-notification-btn'
+  ];
+  
+  testNotificationBtns.forEach(btnId => {
+    const btn = document.getElementById(btnId);
+    if (btn) {
+      btn.addEventListener('click', async () => {
+        try {
         const response = await apiRequest('/notifications/test', {
           method: 'POST'
         });
@@ -1929,27 +1936,36 @@ function initializeNotifications() {
             }, 1000);
           }
         }
-      } catch (error) {
-        console.error('Ошибка создания тестового уведомления:', error);
-        if (window.notificationManager) {
-          window.notificationManager.show('Ошибка создания уведомления: ' + error.message, 'error');
+        } catch (error) {
+          console.error('Ошибка создания тестового уведомления:', error);
+          if (window.notificationManager) {
+            window.notificationManager.show('Ошибка создания уведомления: ' + error.message, 'error');
+          }
         }
-      }
-    });
-  }
+      });
+    }
+  });
 
-  // Обработчик кнопки "отметить все как прочитанные"
-  const markAllReadBtn = document.getElementById('mark-all-read-btn');
-  if (markAllReadBtn) {
-    markAllReadBtn.addEventListener('click', async () => {
-      if (window.notificationCenter) {
-        await window.notificationCenter.markAllAsRead();
-        if (window.notificationManager) {
-          window.notificationManager.show('Все уведомления отмечены как прочитанные', 'success');
+  // Обработчики кнопок "отметить все как прочитанные" для всех ролей
+  const markAllReadBtns = [
+    'admin-mark-all-read-btn',
+    'owner-mark-all-read-btn',
+    'manager-mark-all-read-btn'
+  ];
+  
+  markAllReadBtns.forEach(btnId => {
+    const btn = document.getElementById(btnId);
+    if (btn) {
+      btn.addEventListener('click', async () => {
+        if (window.notificationCenter) {
+          await window.notificationCenter.markAllAsRead();
+          if (window.notificationManager) {
+            window.notificationManager.show('Все уведомления отмечены как прочитанные', 'success');
+          }
         }
-      }
-    });
-  }
+      });
+    }
+  });
 
   // Обработчики переключения на вкладку уведомлений
   document.addEventListener('click', (e) => {

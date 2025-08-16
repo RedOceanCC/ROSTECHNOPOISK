@@ -512,14 +512,13 @@ class NotificationCenter {
 
   // Инициализация обработчиков событий
   initializeEventListeners() {
-    document.addEventListener('DOMContentLoaded', () => {
-      // Кнопки открытия уведомлений
-      document.querySelectorAll('.notifications-btn').forEach(btn => {
-        btn.addEventListener('click', () => this.openModal());
-      });
+    // Кнопки открытия уведомлений
+    document.querySelectorAll('.notifications-btn').forEach(btn => {
+      btn.addEventListener('click', () => this.openModal());
+    });
 
-      // Закрытие модального окна
-      document.addEventListener('click', (e) => {
+    // Закрытие модального окна
+    document.addEventListener('click', (e) => {
         if (e.target.classList.contains('modal-backdrop') || 
             e.target.classList.contains('modal-close')) {
           this.closeModal();
@@ -826,7 +825,7 @@ class NotificationCenter {
           read: notification.read_at !== null
         }));
         
-        this.updateBadge();
+        this.updateBadges();
         this.lastUpdateTime = new Date();
         
         // Запускаем периодическое обновление
@@ -899,7 +898,7 @@ class NotificationCenter {
             this.notifications.unshift(mappedNotification);
           });
           
-          this.updateBadge();
+          this.updateBadges();
           
           // Показываем toast уведомления о новых сообщениях
           if (window.notificationManager && newNotifications.length > 0) {
@@ -923,7 +922,7 @@ class NotificationCenter {
     
     // Отмечаем локально
     notification.read = true;
-    this.updateBadge();
+    this.updateBadges();
     
     // Отмечаем на сервере
     if (window.apiRequest) {
@@ -952,7 +951,7 @@ class NotificationCenter {
       notification.read = true;
     });
     
-    this.updateBadge();
+    this.updateBadges();
     
     // Отмечаем на сервере
     if (window.apiRequest) {
