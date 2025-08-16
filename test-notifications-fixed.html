@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест уведомлений - РОСТЕХНОПОИСК</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f8f9fa;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result { 
+            padding: 12px; 
+            margin: 8px 0; 
+            border-radius: 6px; 
+            border-left: 4px solid;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .success { 
+            background: #d4edda; 
+            border-left-color: #28a745; 
+            color: #155724; 
+        }
+        .error { 
+            background: #f8d7da; 
+            border-left-color: #dc3545; 
+            color: #721c24; 
+        }
+        .info { 
+            background: #d1ecf1; 
+            border-left-color: #17a2b8; 
+            color: #0c5460; 
+        }
+        .warning {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+            color: #856404;
+        }
+        .test-controls { 
+            margin: 20px 0; 
+            text-align: center;
+        }
+        .btn { 
+            padding: 12px 20px; 
+            margin: 8px; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .btn-primary { 
+            background: #007bff; 
+            color: white; 
+        }
+        .btn-secondary { 
+            background: #6c757d; 
+            color: white; 
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #495057;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+        #test-results {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 10px;
+            background: #ffffff;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #007bff;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Тест модуля уведомлений - РОСТЕХНОПОИСК</h1>
+        
+        <div class="test-controls">
+            <button class="btn btn-primary" onclick="runAllTests()" id="runTestsBtn">
+                🚀 Запустить все тесты
+            </button>
+            <button class="btn btn-secondary" onclick="clearResults()">
+                🗑️ Очистить результаты
+            </button>
+            <button class="btn btn-success" onclick="testToastNotification()">
+                🔔 Тест Toast уведомления
+            </button>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressBar"></div>
+        </div>
+        
+        <div class="stats" id="testStats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalTests">0</div>
+                <div class="stat-label">Всего тестов</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="passedTests">0</div>
+                <div class="stat-label">Пройдено</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="failedTests">0</div>
+                <div class="stat-label">Ошибок</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="warningTests">0</div>
+                <div class="stat-label">Предупреждений</div>
+            </div>
+        </div>
+        
+        <div id="test-results"></div>
+    </div>
+    
+    <script>
+        let testStats = {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            warnings: 0
+        };
+        
+        function updateStats() {
+            document.getElementById('totalTests').textContent = testStats.total;
+            document.getElementById('passedTests').textContent = testStats.passed;
+            document.getElementById('failedTests').textContent = testStats.failed;
+            document.getElementById('warningTests').textContent = testStats.warnings;
+            
+            const progress = testStats.total > 0 ? ((testStats.passed + testStats.failed + testStats.warnings) / testStats.total) * 100 : 0;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+        
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('test-results');
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+            
+            // Обновляем статистику
+            if (type === 'success') testStats.passed++;
+            else if (type === 'error') testStats.failed++;
+            else if (type === 'warning') testStats.warnings++;
+            
+            updateStats();
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+            testStats = { total: 0, passed: 0, failed: 0, warnings: 0 };
+            updateStats();
+        }
+        
+        async function loadScript(url) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = url;
+                script.onload = () => resolve(url);
+                script.onerror = () => reject(new Error(`Не удалось загрузить ${url}`));
+                document.head.appendChild(script);
+            });
+        }
+        
+        function testToastNotification() {
+            // Создаем простое toast уведомление без внешних зависимостей
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #28a745;
+                color: white;
+                padding: 15px 20px;
+                border-radius: 6px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 1000;
+                font-family: Arial, sans-serif;
+                animation: slideIn 0.3s ease;
+            `;
+            toast.innerHTML = '✅ Тестовое уведомление работает!';
+            
+            // Добавляем CSS анимацию
+            if (!document.getElementById('toast-styles')) {
+                const style = document.createElement('style');
+                style.id = 'toast-styles';
+                style.textContent = `
+                    @keyframes slideIn {
+                        from { transform: translateX(100%); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+            
+            addResult('✅ Toast уведомление показано успешно', 'success');
+        }
+        
+        async function runAllTests() {
+            clearResults();
+            const runBtn = document.getElementById('runTestsBtn');
+            runBtn.disabled = true;
+            runBtn.innerHTML = '⏳ Выполнение тестов...';
+            
+            addResult('🚀 Начинаем комплексное тестирование модуля уведомлений...', 'info');
+            
+            // Подсчитываем общее количество тестов
+            testStats.total = 25; // Примерное количество тестов
+            updateStats();
+            
+            try {
+                // Тест 1: Проверка загрузки внешних файлов
+                addResult('1. 📄 Проверка загрузки внешних файлов...', 'info');
+                
+                const filesToCheck = [
+                    '/notifications.js',
+                    '/app.js', 
+                    '/style.css'
+                ];
+                
+                for (const file of filesToCheck) {
+                    try {
+                        const response = await fetch(file, { method: 'HEAD' });
+                        if (response.ok) {
+                            addResult(`✅ Файл ${file} доступен`, 'success');
+                        } else {
+                            addResult(`❌ Файл ${file} недоступен (${response.status})`, 'error');
+                        }
+                    } catch (error) {
+                        addResult(`❌ Ошибка загрузки ${file}: ${error.message}`, 'error');
+                    }
+                }
+                
+                // Тест 2: Попытка загрузки notifications.js
+                addResult('2. 🔄 Попытка динамической загрузки notifications.js...', 'info');
+                
+                try {
+                    await loadScript('/notifications.js');
+                    addResult('✅ notifications.js загружен динамически', 'success');
+                } catch (error) {
+                    addResult(`❌ Не удалось загрузить notifications.js: ${error.message}`, 'error');
+                }
+                
+                // Тест 3: Проверка глобальных объектов после загрузки
+                addResult('3. 🔍 Проверка глобальных объектов...', 'info');
+                
+                if (typeof NotificationManager !== 'undefined') {
+                    addResult('✅ NotificationManager найден', 'success');
+                } else {
+                    addResult('❌ NotificationManager не найден', 'error');
+                }
+                
+                if (typeof NotificationCenter !== 'undefined') {
+                    addResult('✅ NotificationCenter найден', 'success');
+                } else {
+                    addResult('❌ NotificationCenter не найден', 'error');
+                }
+                
+                if (typeof window.notificationCenter !== 'undefined') {
+                    addResult('✅ window.notificationCenter инициализирован', 'success');
+                } else {
+                    addResult('⚠️ window.notificationCenter не инициализирован', 'warning');
+                }
+                
+                if (typeof window.notificationManager !== 'undefined') {
+                    addResult('✅ window.notificationManager инициализирован', 'success');
+                } else {
+                    addResult('⚠️ window.notificationManager не инициализирован', 'warning');
+                }
+                
+                // Тест 4: Проверка API доступности
+                addResult('4. 🌐 Проверка API доступности...', 'info');
+                
+                try {
+                    const response = await fetch('/api/health');
+                    if (response.ok) {
+                        const data = await response.json();
+                        addResult(`✅ API доступно: ${data.message}`, 'success');
+                    } else {
+                        addResult(`❌ API недоступно: статус ${response.status}`, 'error');
+                    }
+                } catch (error) {
+                    addResult(`❌ Ошибка подключения к API: ${error.message}`, 'error');
+                }
+                
+                // Тест 5: Проверка endpoints уведомлений
+                addResult('5. 🔔 Проверка endpoints уведомлений...', 'info');
+                
+                const endpoints = [
+                    '/api/notifications',
+                    '/api/notifications/count', 
+                    '/api/notifications/unread'
+                ];
+                
+                for (const endpoint of endpoints) {
+                    try {
+                        const response = await fetch(endpoint);
+                        if (response.status === 401) {
+                            addResult(`✅ ${endpoint} правильно требует авторизацию`, 'success');
+                        } else if (response.ok) {
+                            addResult(`✅ ${endpoint} доступен и работает`, 'success');
+                        } else {
+                            addResult(`⚠️ ${endpoint} вернул статус ${response.status}`, 'warning');
+                        }
+                    } catch (error) {
+                        addResult(`❌ Ошибка ${endpoint}: ${error.message}`, 'error');
+                    }
+                }
+                
+                // Тест 6: Тест создания объектов (если классы доступны)
+                addResult('6. 🏗️ Тест создания объектов...', 'info');
+                
+                if (typeof NotificationManager !== 'undefined') {
+                    try {
+                        const nm = new NotificationManager();
+                        addResult('✅ NotificationManager создан успешно', 'success');
+                        
+                        // Тестируем метод show если он есть
+                        if (typeof nm.show === 'function') {
+                            addResult('✅ Метод show() доступен', 'success');
+                        }
+                    } catch (error) {
+                        addResult(`❌ Ошибка создания NotificationManager: ${error.message}`, 'error');
+                    }
+                }
+                
+                if (typeof NotificationCenter !== 'undefined') {
+                    try {
+                        const nc = new NotificationCenter();
+                        addResult('✅ NotificationCenter создан успешно', 'success');
+                    } catch (error) {
+                        addResult(`❌ Ошибка создания NotificationCenter: ${error.message}`, 'error');
+                    }
+                }
+                
+                // Тест 7: Проверка DOM элементов (основных)
+                addResult('7. 🎯 Проверка основных DOM элементов...', 'info');
+                
+                const criticalElements = ['html', 'head', 'body'];
+                criticalElements.forEach(tag => {
+                    const element = document.querySelector(tag);
+                    if (element) {
+                        addResult(`✅ Элемент <${tag}> найден`, 'success');
+                    } else {
+                        addResult(`❌ Элемент <${tag}> не найден`, 'error');
+                    }
+                });
+                
+                // Тест 8: Проверка Local Storage
+                addResult('8. 💾 Проверка Local Storage...', 'info');
+                
+                try {
+                    localStorage.setItem('test_notification', 'test_value');
+                    const value = localStorage.getItem('test_notification');
+                    if (value === 'test_value') {
+                        addResult('✅ Local Storage работает', 'success');
+                        localStorage.removeItem('test_notification');
+                    } else {
+                        addResult('❌ Local Storage не работает', 'error');
+                    }
+                } catch (error) {
+                    addResult(`❌ Ошибка Local Storage: ${error.message}`, 'error');
+                }
+                
+                // Тест 9: Проверка Console API
+                addResult('9. 📝 Проверка Console API...', 'info');
+                
+                if (typeof console !== 'undefined' && typeof console.log === 'function') {
+                    addResult('✅ Console API доступен', 'success');
+                } else {
+                    addResult('❌ Console API недоступен', 'error');
+                }
+                
+                // Тест 10: Финальная сводка
+                addResult('10. 📊 Финальная сводка...', 'info');
+                
+                const passRate = testStats.total > 0 ? ((testStats.passed / testStats.total) * 100).toFixed(1) : 0;
+                const errorRate = testStats.total > 0 ? ((testStats.failed / testStats.total) * 100).toFixed(1) : 0;
+                
+                addResult(`📈 Статистика: ${passRate}% успешных тестов, ${errorRate}% ошибок`, 'info');
+                
+                if (testStats.failed > 0) {
+                    addResult('❌ Обнаружены критические проблемы с модулем уведомлений', 'error');
+                    addResult('💡 Рекомендации:', 'info');
+                    addResult('   1. Проверьте что файл notifications.js доступен', 'info');
+                    addResult('   2. Убедитесь что сервер запущен', 'info');
+                    addResult('   3. Проверьте консоль браузера на ошибки', 'info');
+                } else if (testStats.warnings > 0) {
+                    addResult('⚠️ Система работает с предупреждениями', 'warning');
+                } else {
+                    addResult('🎉 Все тесты пройдены успешно!', 'success');
+                }
+                
+            } catch (error) {
+                addResult(`❌ Критическая ошибка тестирования: ${error.message}`, 'error');
+            } finally {
+                runBtn.disabled = false;
+                runBtn.innerHTML = '🚀 Запустить все тесты';
+                addResult('🏁 Тестирование завершено!', 'info');
+            }
+        }
+        
+        // Автозапуск при загрузке
+        window.addEventListener('load', () => {
+            addResult('📄 Страница загружена, готов к тестированию', 'info');
+            addResult('💡 Нажмите "Запустить все тесты" для начала диагностики', 'info');
+        });
+        
+        // Обработка ошибок
+        window.addEventListener('error', (event) => {
+            addResult(`❌ JavaScript ошибка: ${event.message} в ${event.filename}:${event.lineno}`, 'error');
+        });
+    </script>
+</body>
+</html>

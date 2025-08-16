@@ -4,17 +4,17 @@
   "description": "Backend для MVP платформы аренды спецтехники РОСТЕХНОПОИСК",
   "main": "server.js",
   "scripts": {
-    "start": "NODE_ENV=production node server.js",
-    "dev": "NODE_ENV=development nodemon server.js",
-    "local": "NODE_ENV=local node server.js",
+    "start": "cross-env NODE_ENV=production node server.js",
+    "dev": "cross-env NODE_ENV=development nodemon server.js",
+    "local": "cross-env NODE_ENV=local node server.js",
     "init-db": "node database/init.js",
     "migrate": "node database/migrate.js",
     "migrate:create": "node database/migrate.js create",
     "migrate:status": "node database/migrate.js status",
-    "migrate:prod": "NODE_ENV=production node database/migrate-prod.js",
-    "backup": "NODE_ENV=production node database/migrate-prod.js backup",
-    "restore": "NODE_ENV=production node database/migrate-prod.js restore",
-    "db-status": "NODE_ENV=production node database/migrate-prod.js check"
+    "migrate:prod": "cross-env NODE_ENV=production node database/migrate-prod.js",
+    "backup": "cross-env NODE_ENV=production node database/migrate-prod.js backup",
+    "restore": "cross-env NODE_ENV=production node database/migrate-prod.js restore",
+    "db-status": "cross-env NODE_ENV=production node database/migrate-prod.js check"
   },
   "dependencies": {
     "axios": "^1.6.0",
@@ -28,6 +28,7 @@
     "supertest": "^7.1.4"
   },
   "devDependencies": {
+    "cross-env": "^10.0.0",
     "nodemon": "^3.0.1"
   },
   "keywords": [

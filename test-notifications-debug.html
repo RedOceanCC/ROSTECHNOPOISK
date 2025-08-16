@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Диагностика уведомлений - РОСТЕХНОПОИСК</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f8f9fa;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result { 
+            padding: 12px; 
+            margin: 8px 0; 
+            border-radius: 6px; 
+            border-left: 4px solid;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .success { 
+            background: #d4edda; 
+            border-left-color: #28a745; 
+            color: #155724; 
+        }
+        .error { 
+            background: #f8d7da; 
+            border-left-color: #dc3545; 
+            color: #721c24; 
+        }
+        .info { 
+            background: #d1ecf1; 
+            border-left-color: #17a2b8; 
+            color: #0c5460; 
+        }
+        .btn { 
+            padding: 12px 20px; 
+            margin: 8px; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 14px;
+            font-weight: 500;
+            background: #007bff; 
+            color: white; 
+        }
+        #console-output {
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            height: 300px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Диагностика системы уведомлений</h1>
+        
+        <div class="test-controls">
+            <button class="btn" onclick="runDiagnostics()">🚀 Запустить диагностику</button>
+            <button class="btn" onclick="testNotificationClick()">🔔 Тест клика по уведомлениям</button>
+            <button class="btn" onclick="clearConsole()">🗑️ Очистить консоль</button>
+        </div>
+        
+        <div id="console-output"></div>
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        let consoleOutput = document.getElementById('console-output');
+        let testResults = document.getElementById('test-results');
+
+        // Перехватываем console.log
+        const originalConsole = console.log;
+        console.log = function(...args) {
+            originalConsole.apply(console, arguments);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            
+            const timestamp = new Date().toLocaleTimeString();
+            consoleOutput.innerHTML += `[${timestamp}] ${message}\n`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        };
+
+        // Перехватываем console.error
+        const originalError = console.error;
+        console.error = function(...args) {
+            originalError.apply(console, arguments);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            
+            const timestamp = new Date().toLocaleTimeString();
+            consoleOutput.innerHTML += `<span style="color: #f00;">[${timestamp}] ERROR: ${message}</span>\n`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        };
+
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            testResults.appendChild(div);
+        }
+
+        function clearConsole() {
+            consoleOutput.innerHTML = '';
+            testResults.innerHTML = '';
+        }
+
+        function runDiagnostics() {
+            clearConsole();
+            console.log('🔧 Начинаем диагностику системы уведомлений...');
+            
+            // Проверка глобальных объектов
+            console.log('📊 Глобальные объекты:');
+            console.log('  window.notifications:', typeof window.notifications);
+            console.log('  window.notificationCenter:', typeof window.notificationCenter);
+            console.log('  window.notificationManager:', typeof window.notificationManager);
+            
+            // Проверка DOM элементов
+            console.log('🔍 DOM элементы:');
+            const notificationBtns = document.querySelectorAll('.notifications-btn');
+            console.log('  Кнопки .notifications-btn:', notificationBtns.length);
+            
+            notificationBtns.forEach((btn, i) => {
+                console.log(`    Кнопка ${i + 1}: ID="${btn.id}", classes="${btn.className}"`);
+            });
+            
+            const modal = document.getElementById('notifications-modal');
+            console.log('  Модальное окно #notifications-modal:', !!modal);
+            
+            if (modal) {
+                console.log('    Классы модала:', modal.className);
+                console.log('    Скрыто:', modal.classList.contains('hidden'));
+            }
+            
+            // Проверка событий
+            console.log('🎯 Проверка обработчиков событий...');
+            if (window.notificationCenter) {
+                console.log('  NotificationCenter инициализирован');
+                console.log('  Количество уведомлений:', window.notificationCenter.notifications?.length || 0);
+            } else {
+                console.error('  NotificationCenter НЕ инициализирован!');
+            }
+            
+            // Проверка API
+            console.log('🌐 Проверка API...');
+            fetch('http://localhost:3001/api/health')
+                .then(response => {
+                    console.log('  Статус ответа:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('  API здоровья:', data.success ? '✅ OK' : '❌ ERROR');
+                    console.log('  Данные API:', data);
+                    addResult('Диагностика завершена - см. консоль', 'success');
+                })
+                .catch(error => {
+                    console.error('  Ошибка API:', error.message);
+                    console.log('  💡 Убедитесь, что backend запущен на порту 3001');
+                    addResult('Диагностика завершена с ошибками - см. консоль', 'error');
+                });
+        }
+
+        function testNotificationClick() {
+            console.log('🔔 Тестируем клик по кнопке уведомлений...');
+            
+            const btn = document.querySelector('.notifications-btn');
+            if (btn) {
+                console.log('✅ Кнопка найдена, эмулируем клик...');
+                btn.click();
+                
+                setTimeout(() => {
+                    const modal = document.getElementById('notifications-modal');
+                    if (modal && !modal.classList.contains('hidden')) {
+                        console.log('🎉 Модальное окно открылось успешно!');
+                        addResult('✅ Клик по уведомлениям работает', 'success');
+                    } else {
+                        console.error('❌ Модальное окно не открылось');
+                        addResult('❌ Клик по уведомлениям не работает', 'error');
+                    }
+                }, 500);
+            } else {
+                console.error('❌ Кнопка уведомлений не найдена');
+                addResult('❌ Кнопка уведомлений не найдена', 'error');
+            }
+        }
+
+        // Автозапуск диагностики при загрузке
+        window.addEventListener('load', () => {
+            console.log('📄 Страница диагностики загружена');
+            setTimeout(runDiagnostics, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -512,9 +512,18 @@ class NotificationCenter {
 
   // Инициализация обработчиков событий
   initializeEventListeners() {
+    console.log('🔧 Инициализация обработчиков событий NotificationCenter...');
+    
     // Кнопки открытия уведомлений
-    document.querySelectorAll('.notifications-btn').forEach(btn => {
-      btn.addEventListener('click', () => this.openModal());
+    const notificationBtns = document.querySelectorAll('.notifications-btn');
+    console.log('🔔 Найдено кнопок уведомлений:', notificationBtns.length);
+    
+    notificationBtns.forEach((btn, index) => {
+      console.log(`🔘 Добавляем обработчик для кнопки ${index + 1}:`, btn.id || btn.className);
+      btn.addEventListener('click', () => {
+        console.log('🔔 Клик по кнопке уведомлений! Открываем модал...');
+        this.openModal();
+      });
     });
 
     // Закрытие модального окна
@@ -537,16 +546,22 @@ class NotificationCenter {
       if (markAllBtn) {
         markAllBtn.addEventListener('click', () => this.markAllAsRead());
       }
-    });
   }
 
   // Открыть модальное окно
   openModal() {
+    console.log('📂 Попытка открыть модальное окно уведомлений...');
     const modal = document.getElementById('notifications-modal');
+    console.log('🔍 Модальное окно найдено:', !!modal);
+    
     if (modal) {
+      console.log('✅ Открываем модальное окно...');
       modal.classList.remove('hidden');
       this.isModalOpen = true;
       this.renderNotifications();
+      console.log('🎯 Модальное окно открыто успешно');
+    } else {
+      console.error('❌ Модальное окно #notifications-modal не найдено в DOM!');
     }
   }
 
@@ -1001,8 +1016,12 @@ class NotificationCenter {
   }
 }
 
-// Создаем глобальный экземпляр центра уведомлений
-window.notificationCenter = new NotificationCenter();
+// Создаем глобальный экземпляр центра уведомлений после загрузки DOM
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('🔔 Инициализация NotificationCenter...');
+  window.notificationCenter = new NotificationCenter();
+  console.log('✅ NotificationCenter инициализирован:', !!window.notificationCenter);
+});
 
 // Экспорт для использования в модулях
 if (typeof module !== 'undefined' && module.exports) {

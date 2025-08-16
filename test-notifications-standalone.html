@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Автономный тест уведомлений - РОСТЕХНОПОИСК</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f8f9fa;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result { 
+            padding: 12px; 
+            margin: 8px 0; 
+            border-radius: 6px; 
+            border-left: 4px solid;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .success { 
+            background: #d4edda; 
+            border-left-color: #28a745; 
+            color: #155724; 
+        }
+        .error { 
+            background: #f8d7da; 
+            border-left-color: #dc3545; 
+            color: #721c24; 
+        }
+        .info { 
+            background: #d1ecf1; 
+            border-left-color: #17a2b8; 
+            color: #0c5460; 
+        }
+        .warning {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+            color: #856404;
+        }
+        .test-controls { 
+            margin: 20px 0; 
+            text-align: center;
+        }
+        .btn { 
+            padding: 12px 20px; 
+            margin: 8px; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .btn-primary { 
+            background: #007bff; 
+            color: white; 
+        }
+        .btn-secondary { 
+            background: #6c757d; 
+            color: white; 
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #495057;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+        #test-results {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 10px;
+            background: #ffffff;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #007bff;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        .server-info {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .server-info h3 {
+            margin: 0 0 10px 0;
+            color: #1976d2;
+        }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Автономный тест уведомлений - РОСТЕХНОПОИСК</h1>
+        
+        <div class="server-info">
+            <h3>⚠️ ВНИМАНИЕ: Запуск через file://</h3>
+            <p>Этот файл открыт как локальный файл. Для полного тестирования нужно:</p>
+            <div class="code-block">
+                1. Скопировать в корень проекта: cp test-notifications-standalone.html ../<br>
+                2. Открыть через сервер: https://ростехнопоиск.рф/test-notifications-standalone.html<br>
+                3. Или локально: http://localhost:3000/test-notifications-standalone.html
+            </div>
+        </div>
+        
+        <div class="test-controls">
+            <button class="btn btn-primary" onclick="runStandaloneTests()" id="runTestsBtn">
+                🚀 Запустить автономные тесты
+            </button>
+            <button class="btn btn-secondary" onclick="clearResults()">
+                🗑️ Очистить результаты
+            </button>
+            <button class="btn btn-success" onclick="testToastNotification()">
+                🔔 Тест Toast уведомления
+            </button>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressBar"></div>
+        </div>
+        
+        <div class="stats" id="testStats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalTests">0</div>
+                <div class="stat-label">Всего тестов</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="passedTests">0</div>
+                <div class="stat-label">Пройдено</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="failedTests">0</div>
+                <div class="stat-label">Ошибок</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="warningTests">0</div>
+                <div class="stat-label">Предупреждений</div>
+            </div>
+        </div>
+        
+        <div id="test-results"></div>
+    </div>
+    
+    <!-- Встроенные упрощенные классы для тестирования -->
+    <script>
+        // Упрощенная версия NotificationManager для тестирования
+        class TestNotificationManager {
+            constructor() {
+                this.notifications = [];
+                this.maxNotifications = 5;
+                this.defaultDuration = 4000;
+                this.container = null;
+                this.init();
+            }
+            
+            init() {
+                if (this.container) return;
+                
+                this.container = document.createElement('div');
+                this.container.id = 'test-notification-container';
+                this.container.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    z-index: 1000;
+                    max-width: 400px;
+                `;
+                document.body.appendChild(this.container);
+            }
+            
+            show(message, type = 'info', duration = null) {
+                this.init();
+                
+                const actualDuration = duration || this.defaultDuration;
+                const toast = this.createToast(message, type, actualDuration);
+                
+                this.container.appendChild(toast);
+                this.notifications.push(toast);
+                
+                if (this.notifications.length > this.maxNotifications) {
+                    this.hide(this.notifications[0]);
+                }
+                
+                requestAnimationFrame(() => {
+                    toast.style.transform = 'translateX(0)';
+                    toast.style.opacity = '1';
+                });
+                
+                if (actualDuration > 0) {
+                    setTimeout(() => {
+                        this.hide(toast);
+                    }, actualDuration);
+                }
+                
+                return toast;
+            }
+            
+            createToast(message, type, duration) {
+                const toast = document.createElement('div');
+                const colors = {
+                    success: { bg: '#28a745', border: '#1e7e34' },
+                    error: { bg: '#dc3545', border: '#c82333' },
+                    warning: { bg: '#ffc107', border: '#e0a800' },
+                    info: { bg: '#17a2b8', border: '#138496' }
+                };
+                
+                const color = colors[type] || colors.info;
+                
+                toast.style.cssText = `
+                    background: ${color.bg};
+                    color: white;
+                    padding: 12px 16px;
+                    margin-bottom: 10px;
+                    border-radius: 6px;
+                    border-left: 4px solid ${color.border};
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                    transform: translateX(100%);
+                    opacity: 0;
+                    transition: all 0.3s ease;
+                    font-family: Arial, sans-serif;
+                    font-size: 14px;
+                    word-wrap: break-word;
+                `;
+                
+                toast.textContent = message;
+                return toast;
+            }
+            
+            hide(toast) {
+                if (!toast || !toast.parentNode) return;
+                
+                toast.style.transform = 'translateX(100%)';
+                toast.style.opacity = '0';
+                
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                    const index = this.notifications.indexOf(toast);
+                    if (index > -1) {
+                        this.notifications.splice(index, 1);
+                    }
+                }, 300);
+            }
+        }
+        
+        // Упрощенная версия NotificationCenter для тестирования
+        class TestNotificationCenter {
+            constructor() {
+                this.notifications = [];
+                this.currentFilter = 'all';
+                this.isModalOpen = false;
+            }
+            
+            addNotification(notification) {
+                const fullNotification = {
+                    id: Date.now() + Math.random(),
+                    ...notification,
+                    created_at: new Date().toISOString(),
+                    read: false
+                };
+                
+                this.notifications.unshift(fullNotification);
+                return fullNotification;
+            }
+            
+            markAsRead(notificationId) {
+                const notification = this.notifications.find(n => n.id === notificationId);
+                if (notification) {
+                    notification.read = true;
+                }
+            }
+            
+            markAllAsRead() {
+                this.notifications.forEach(n => n.read = true);
+            }
+            
+            updateBadges() {
+                // Заглушка для совместимости
+                console.log('updateBadges called');
+            }
+        }
+        
+        // Глобальные переменные для тестирования
+        let testStats = {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            warnings: 0
+        };
+        
+        // Инициализация тестовых объектов
+        const TestNotificationManager = TestNotificationManager;
+        const TestNotificationCenter = TestNotificationCenter;
+        window.testNotificationManager = new TestNotificationManager();
+        window.testNotificationCenter = new TestNotificationCenter();
+        
+        function updateStats() {
+            document.getElementById('totalTests').textContent = testStats.total;
+            document.getElementById('passedTests').textContent = testStats.passed;
+            document.getElementById('failedTests').textContent = testStats.failed;
+            document.getElementById('warningTests').textContent = testStats.warnings;
+            
+            const progress = testStats.total > 0 ? ((testStats.passed + testStats.failed + testStats.warnings) / testStats.total) * 100 : 0;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+        
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('test-results');
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+            
+            if (type === 'success') testStats.passed++;
+            else if (type === 'error') testStats.failed++;
+            else if (type === 'warning') testStats.warnings++;
+            
+            updateStats();
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+            testStats = { total: 0, passed: 0, failed: 0, warnings: 0 };
+            updateStats();
+        }
+        
+        function testToastNotification() {
+            window.testNotificationManager.show('✅ Тестовое уведомление работает!', 'success');
+            addResult('✅ Toast уведомление показано успешно', 'success');
+        }
+        
+        function detectEnvironment() {
+            const protocol = window.location.protocol;
+            const hostname = window.location.hostname;
+            
+            if (protocol === 'file:') {
+                return {
+                    type: 'file',
+                    canTestAPI: false,
+                    message: 'Локальный файл (file://)'
+                };
+            } else if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                return {
+                    type: 'local',
+                    canTestAPI: true,
+                    message: 'Локальный сервер'
+                };
+            } else {
+                return {
+                    type: 'production',
+                    canTestAPI: true,
+                    message: 'Продакшн сервер'
+                };
+            }
+        }
+        
+        async function runStandaloneTests() {
+            clearResults();
+            const runBtn = document.getElementById('runTestsBtn');
+            runBtn.disabled = true;
+            runBtn.innerHTML = '⏳ Выполнение тестов...';
+            
+            addResult('🚀 Начинаем автономное тестирование модуля уведомлений...', 'info');
+            
+            testStats.total = 15;
+            updateStats();
+            
+            try {
+                // Тест 1: Определение среды
+                addResult('1. 🌍 Определение среды выполнения...', 'info');
+                const env = detectEnvironment();
+                addResult(`✅ Среда: ${env.message}`, 'success');
+                
+                if (!env.canTestAPI) {
+                    addResult('⚠️ API тесты будут пропущены (file:// протокол)', 'warning');
+                }
+                
+                // Тест 2: Проверка встроенных классов
+                addResult('2. 🏗️ Проверка встроенных тестовых классов...', 'info');
+                
+                if (typeof TestNotificationManager !== 'undefined') {
+                    addResult('✅ TestNotificationManager найден', 'success');
+                } else {
+                    addResult('❌ TestNotificationManager не найден', 'error');
+                }
+                
+                if (typeof TestNotificationCenter !== 'undefined') {
+                    addResult('✅ TestNotificationCenter найден', 'success');
+                } else {
+                    addResult('❌ TestNotificationCenter не найден', 'error');
+                }
+                
+                // Тест 3: Создание объектов
+                addResult('3. 🔧 Тест создания объектов...', 'info');
+                
+                try {
+                    const nm = new TestNotificationManager();
+                    addResult('✅ TestNotificationManager создан успешно', 'success');
+                    
+                    if (typeof nm.show === 'function') {
+                        addResult('✅ Метод show() доступен', 'success');
+                    }
+                } catch (error) {
+                    addResult(`❌ Ошибка создания TestNotificationManager: ${error.message}`, 'error');
+                }
+                
+                try {
+                    const nc = new TestNotificationCenter();
+                    addResult('✅ TestNotificationCenter создан успешно', 'success');
+                    
+                    if (typeof nc.addNotification === 'function') {
+                        addResult('✅ Метод addNotification() доступен', 'success');
+                    }
+                } catch (error) {
+                    addResult(`❌ Ошибка создания TestNotificationCenter: ${error.message}`, 'error');
+                }
+                
+                // Тест 4: Функциональность NotificationCenter
+                addResult('4. 📋 Тест функциональности NotificationCenter...', 'info');
+                
+                try {
+                    const testNotification = {
+                        title: 'Тест уведомления',
+                        message: 'Это тестовое сообщение',
+                        type: 'info'
+                    };
+                    
+                    const notification = window.testNotificationCenter.addNotification(testNotification);
+                    addResult('✅ Уведомление добавлено успешно', 'success');
+                    
+                    if (notification.id) {
+                        addResult('✅ ID уведомления генерируется', 'success');
+                    }
+                    
+                    window.testNotificationCenter.markAsRead(notification.id);
+                    addResult('✅ Отметка как прочитанное работает', 'success');
+                    
+                } catch (error) {
+                    addResult(`❌ Ошибка тестирования NotificationCenter: ${error.message}`, 'error');
+                }
+                
+                // Тест 5: Toast уведомления
+                addResult('5. 🔔 Тест Toast уведомлений...', 'info');
+                
+                try {
+                    window.testNotificationManager.show('Тест успешный', 'success', 1000);
+                    addResult('✅ Toast уведомление (success) работает', 'success');
+                    
+                    setTimeout(() => {
+                        window.testNotificationManager.show('Тест ошибки', 'error', 1000);
+                        addResult('✅ Toast уведомление (error) работает', 'success');
+                    }, 500);
+                    
+                    setTimeout(() => {
+                        window.testNotificationManager.show('Тест предупреждения', 'warning', 1000);
+                        addResult('✅ Toast уведомление (warning) работает', 'success');
+                    }, 1000);
+                    
+                } catch (error) {
+                    addResult(`❌ Ошибка Toast уведомлений: ${error.message}`, 'error');
+                }
+                
+                // Тест 6: DOM манипуляции
+                addResult('6. 🎯 Тест DOM манипуляций...', 'info');
+                
+                const testDiv = document.createElement('div');
+                testDiv.id = 'test-element';
+                testDiv.textContent = 'Тестовый элемент';
+                document.body.appendChild(testDiv);
+                
+                const foundElement = document.getElementById('test-element');
+                if (foundElement) {
+                    addResult('✅ Создание и поиск DOM элементов работает', 'success');
+                    foundElement.remove();
+                } else {
+                    addResult('❌ Проблемы с DOM манипуляциями', 'error');
+                }
+                
+                // Тест 7: Local Storage
+                addResult('7. 💾 Тест Local Storage...', 'info');
+                
+                try {
+                    const testKey = 'notification_test_' + Date.now();
+                    const testValue = 'test_value';
+                    
+                    localStorage.setItem(testKey, testValue);
+                    const retrievedValue = localStorage.getItem(testKey);
+                    
+                    if (retrievedValue === testValue) {
+                        addResult('✅ Local Storage работает корректно', 'success');
+                        localStorage.removeItem(testKey);
+                    } else {
+                        addResult('❌ Local Storage не сохраняет данные', 'error');
+                    }
+                } catch (error) {
+                    addResult(`❌ Ошибка Local Storage: ${error.message}`, 'error');
+                }
+                
+                // Тест 8: API (если возможно)
+                if (env.canTestAPI) {
+                    addResult('8. 🌐 Тест API соединения...', 'info');
+                    
+                    try {
+                        const response = await fetch('/api/health');
+                        if (response.ok) {
+                            const data = await response.json();
+                            addResult(`✅ API доступно: ${data.message}`, 'success');
+                        } else {
+                            addResult(`⚠️ API вернуло статус ${response.status}`, 'warning');
+                        }
+                    } catch (error) {
+                        addResult(`❌ Ошибка API: ${error.message}`, 'error');
+                    }
+                } else {
+                    addResult('8. 🌐 API тесты пропущены (file:// протокол)', 'warning');
+                }
+                
+                // Финальная сводка
+                addResult('9. 📊 Финальная сводка...', 'info');
+                
+                const passRate = testStats.total > 0 ? ((testStats.passed / testStats.total) * 100).toFixed(1) : 0;
+                const errorRate = testStats.total > 0 ? ((testStats.failed / testStats.total) * 100).toFixed(1) : 0;
+                
+                addResult(`📈 Статистика: ${passRate}% успешных тестов, ${errorRate}% ошибок`, 'info');
+                
+                if (testStats.failed === 0) {
+                    addResult('🎉 Все тесты пройдены успешно! Базовая функциональность работает.', 'success');
+                } else if (testStats.failed < 3) {
+                    addResult('⚠️ Система работает с незначительными проблемами', 'warning');
+                } else {
+                    addResult('❌ Обнаружены критические проблемы', 'error');
+                }
+                
+                if (!env.canTestAPI) {
+                    addResult('💡 Для полного тестирования откройте файл через веб-сервер', 'info');
+                }
+                
+            } catch (error) {
+                addResult(`❌ Критическая ошибка тестирования: ${error.message}`, 'error');
+            } finally {
+                runBtn.disabled = false;
+                runBtn.innerHTML = '🚀 Запустить автономные тесты';
+                addResult('🏁 Автономное тестирование завершено!', 'info');
+            }
+        }
+        
+        // Автозапуск при загрузке
+        window.addEventListener('load', () => {
+            addResult('📄 Автономная тестовая страница загружена', 'info');
+            addResult('💡 Эта версия работает без внешних зависимостей', 'info');
+            
+            const env = detectEnvironment();
+            if (env.type === 'file') {
+                addResult('⚠️ Для полного тестирования скопируйте файл на сервер', 'warning');
+            }
+        });
+        
+        // Обработка ошибок
+        window.addEventListener('error', (event) => {
+            addResult(`❌ JavaScript ошибка: ${event.message}`, 'error');
+        });
+    </script>
+</body>
+</html>

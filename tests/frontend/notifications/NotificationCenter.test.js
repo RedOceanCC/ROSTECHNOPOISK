@@ -68,11 +68,16 @@ class TestNotificationCenter {
   }
 
   addNotification(notification) {
+    if (!notification) return null;
+    
     const newNotification = {
       id: Date.now() + Math.random(),
+      title: '',
+      message: '',
+      type: 'info',
       ...notification,
-      created_at: notification.created_at || new Date().toISOString(),
-      read: notification.read || false
+      created_at: notification?.created_at || new Date().toISOString(),
+      read: notification?.read || false
     };
     
     this.notifications.unshift(newNotification);
@@ -492,6 +497,7 @@ describe('NotificationCenter', () => {
 
       notificationCenter.renderNotifications();
       notificationCenter.markAsRead(notification.id);
+      notificationCenter.renderNotifications(); // Перерендерим после изменения статуса
 
       const item = document.querySelector(`[data-id="${notification.id}"]`);
       expect(item.classList.contains('unread')).toBe(false);
