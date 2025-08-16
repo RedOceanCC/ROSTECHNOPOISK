@@ -1,0 +1,84 @@
+{
+  "name": "rostekhnopoise-tests",
+  "version": "1.0.0",
+  "description": "Автотесты для системы аренды спецтехники РОСТЕХНОПОИСК",
+  "scripts": {
+    "test": "node tests/run-all-tests.js",
+    "test:all": "node tests/run-all-tests.js",
+    "test:quick": "jest --passWithNoTests",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:backend": "jest tests/backend --verbose",
+    "test:frontend": "jest tests/frontend --verbose",
+    "test:e2e": "jest tests/e2e --verbose --runInBand",
+    "test:models": "jest tests/backend/models --verbose",
+    "test:routes": "jest tests/backend/routes --verbose",
+    "test:middleware": "jest tests/backend/middleware --verbose",
+    "test:services": "jest tests/backend/services --verbose",
+    "test:notifications": "jest tests/frontend/notifications --verbose",
+    "test:timers": "jest tests/frontend/timers --verbose",
+    "test:ui": "jest tests/frontend/ui --verbose",
+    "setup:test-db": "node tests/config/setup-test-db.js",
+    "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand",
+    "test:silent": "jest --silent",
+    "lint": "echo 'Линтинг пропущен (ESLint не настроен)'",
+    "pretest": "npm run setup:test-db"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.8",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "puppeteer": "^21.6.1",
+    "sqlite3": "^5.1.6",
+    "supertest": "^6.3.3"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverageFrom": [
+      "backend/**/*.js",
+      "*.js",
+      "!backend/database/init.js",
+      "!tests/**",
+      "!node_modules/**"
+    ],
+    "coverageDirectory": "coverage",
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ],
+    "testMatch": [
+      "**/tests/**/*.test.js",
+      "**/tests/**/*.spec.js"
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/tests/config/jest.setup.js"
+    ],
+    "projects": [
+      {
+        "displayName": "backend",
+        "testMatch": [
+          "<rootDir>/tests/backend/**/*.test.js"
+        ],
+        "testEnvironment": "node"
+      },
+      {
+        "displayName": "frontend",
+        "testMatch": [
+          "<rootDir>/tests/frontend/**/*.test.js"
+        ],
+        "testEnvironment": "jsdom"
+      },
+      {
+        "displayName": "e2e",
+        "testMatch": [
+          "<rootDir>/tests/e2e/**/*.test.js"
+        ],
+        "testEnvironment": "node"
+      }
+    ]
+  },
+  "dependencies": {
+    "dotenv": "^17.2.1"
+  }
+}

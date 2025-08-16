@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>РОСТЕХНОПОИСК - Аренда спецтехники</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Главная страница с авторизацией -->
+        <div id="login-page" class="page active">
+            <div class="login-container">
+                <div class="login-card card">
+                    <div class="login-header">
+                        <h1>РОСТЕХНОПОИСК</h1>
+                        <div class="login-subtitle">
+                            <h2>Аренда спецтехники для юридических лиц</h2>
+                            <p>Один каталог. Прозрачные цены. Один договор — десятки единиц техники под ваши проекты.</p>
+                        </div>
+                    </div>
+                    <div class="card__body">
+                        <form id="login-form" class="form-group">
+                            <div class="form-group">
+                                <label for="password" class="form-label">Пароль</label>
+                                <input type="password" id="password" class="form-control" placeholder="Введите пароль для входа" required>
+                            </div>
+                            <button type="submit" class="btn btn--primary btn--full-width">Войти</button>
+                        </form>
+                        <div id="login-error" class="status status--error hidden">
+                            Неверный пароль
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Дашборд Админа -->
+        <div id="admin-dashboard" class="page">
+            <div class="dashboard-layout">
+                <aside class="sidebar">
+                    <div class="sidebar-header">
+                        <div class="sidebar-title">
+                            <h3>РОСТЕХНОПОИСК</h3>
+                            <span class="user-role">Администратор</span>
+                        </div>
+                        <button class="notifications-btn" id="admin-notifications-btn">
+                            <span class="notifications-icon">🔔</span>
+                            <span class="notifications-badge" id="admin-notifications-count">0</span>
+                        </button>
+                    </div>
+                    <nav class="sidebar-nav">
+                        <button class="sidebar-nav-item active" data-tab="users">Пользователи</button>
+                        <button class="sidebar-nav-item" data-tab="companies">Компании</button>
+                        <button class="sidebar-nav-item" data-tab="partnerships">Партнерства</button>
+                        <button class="sidebar-nav-item logout-btn">Выйти</button>
+                    </nav>
+                </aside>
+                <main class="dashboard-main">
+                    <!-- Вкладка Пользователи -->
+                    <div id="users-tab" class="tab-content active">
+                        <div class="dashboard-header">
+                            <h2>Управление пользователями</h2>
+                            <button class="btn btn--primary" id="create-user-btn">Создать пользователя</button>
+                        </div>
+                        <div class="users-table-container">
+                            <table class="users-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Имя</th>
+                                        <th>Роль</th>
+                                        <th>Компания</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-table-body">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Вкладка Компании -->
+                    <div id="companies-tab" class="tab-content">
+                        <div class="dashboard-header">
+                            <h2>Управление компаниями</h2>
+                            <button class="btn btn--primary" id="create-company-btn">
+                                <span>+</span> Создать компанию
+                            </button>
+                        </div>
+                        <div id="companies-grid" class="companies-grid">
+                            <!-- Карточки компаний будут добавлены JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <!-- Вкладка Партнерства -->
+                    <div id="partnerships-tab" class="tab-content">
+                        <div class="dashboard-header">
+                            <h2>Управление партнерствами</h2>
+                            <p class="text-secondary">Настройте взаимодействие между компаниями владельцев и менеджеров</p>
+                        </div>
+                        
+                        <div class="partnerships-modern-container">
+                            <div class="partnerships-header">
+                                <div class="partnerships-info">
+                                    <h3>Матрица партнерств</h3>
+                                    <p>Управляйте доступом к аукционам между компаниями</p>
+                                </div>
+                                <div class="partnerships-legend">
+                                    <div class="legend-item">
+                                        <div class="legend-icon connected"></div>
+                                        <span>Партнеры</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-icon disconnected"></div>
+                                        <span>Нет доступа</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="partnerships-grid" class="partnerships-grid">
+                                <!-- Карточки партнерств будут добавлены JavaScript -->
+                            </div>
+                            
+                            <div class="partnerships-actions" id="partnerships-actions" style="display: none;">
+                                <div class="changes-summary">
+                                    <span id="changes-count">0 изменений</span>
+                                </div>
+                                <div class="action-buttons">
+                                    <button class="btn btn--secondary" id="reset-partnerships-btn">
+                                        Отменить
+                                    </button>
+                                    <button class="btn btn--primary" id="save-partnerships-btn">
+                                        Сохранить изменения
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+
+        <!-- Дашборд Владельца -->
+        <div id="owner-dashboard" class="page">
+            <div class="dashboard-layout">
+                <aside class="sidebar">
+                    <div class="sidebar-header">
+                        <div class="sidebar-title">
+                            <h3>РОСТЕХНОПОИСК</h3>
+                            <span class="user-role">Владелец техники</span>
+                        </div>
+                        <button class="notifications-btn" id="owner-notifications-btn">
+                            <span class="notifications-icon">🔔</span>
+                            <span class="notifications-badge" id="owner-notifications-count">0</span>
+                        </button>
+                    </div>
+                    <nav class="sidebar-nav">
+                        <button class="sidebar-nav-item active" data-tab="equipment">Моя техника</button>
+                        <button class="sidebar-nav-item" data-tab="orders">Мои заявки</button>
+                        <button class="sidebar-nav-item logout-btn">Выйти</button>
+                    </nav>
+                </aside>
+                <main class="dashboard-main">
+                    <div id="equipment-tab" class="tab-content active">
+                        <div class="dashboard-header">
+                            <h2>Моя техника</h2>
+                            <button class="btn btn--primary" id="add-equipment-btn">Добавить технику</button>
+                        </div>
+                        <div id="equipment-grid" class="equipment-grid">
+                        </div>
+                    </div>
+                    <div id="orders-tab" class="tab-content">
+                        <div class="dashboard-header">
+                            <h2>Заявки на мою технику</h2>
+                        </div>
+                        <div id="owner-orders-grid" class="orders-grid">
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+
+        <!-- Дашборд Менеджера -->
+        <div id="manager-dashboard" class="page">
+            <div class="dashboard-layout">
+                <aside class="sidebar">
+                    <div class="sidebar-header">
+                        <div class="sidebar-title">
+                            <h3>РОСТЕХНОПОИСК</h3>
+                            <span class="user-role">Менеджер</span>
+                        </div>
+                        <button class="notifications-btn" id="manager-notifications-btn">
+                            <span class="notifications-icon">🔔</span>
+                            <span class="notifications-badge" id="manager-notifications-count">0</span>
+                        </button>
+                    </div>
+                    <nav class="sidebar-nav">
+                        <button class="sidebar-nav-item active" data-tab="create-order">Создать заявку</button>
+                        <button class="sidebar-nav-item" data-tab="my-orders">Мои заявки</button>
+                        <button class="sidebar-nav-item logout-btn">Выйти</button>
+                    </nav>
+                </aside>
+                <main class="dashboard-main">
+                    <div id="create-order-tab" class="tab-content active">
+                        <div class="dashboard-header">
+                            <h2>Создать заявку на технику</h2>
+                        </div>
+                        <div class="order-form-container">
+                            <form id="create-order-form" class="card">
+                                <div class="card__body">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Тип техники</label>
+                                            <select id="order-type" class="form-control" required>
+                                                <option value="">Выберите тип техники</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Подтип техники</label>
+                                            <select id="order-subtype" class="form-control" disabled required>
+                                                <option value="">Сначала выберите тип</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Дата начала</label>
+                                            <input type="date" id="order-start-date" class="form-control" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Дата окончания</label>
+                                            <input type="date" id="order-end-date" class="form-control" required>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Местоположение работ</label>
+                                        <input type="text" id="order-location" class="form-control" placeholder="Укажите адрес или район" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Описание задач</label>
+                                        <textarea id="order-description" class="form-control" rows="4" placeholder="Опишите объем и характер работ" required></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn--primary">Создать заявку</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    <div id="my-orders-tab" class="tab-content">
+                        <div class="dashboard-header">
+                            <h2>Мои заявки</h2>
+                        </div>
+                        <div id="manager-orders-grid" class="orders-grid">
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+
+        <!-- Модальное окно создания пользователя -->
+        <div id="create-user-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content card">
+                <div class="modal-header">
+                    <h3>Создать пользователя</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <form id="create-user-form" class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Имя пользователя</label>
+                        <input type="text" id="new-user-name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Телефон</label>
+                        <input type="tel" id="new-user-phone" class="form-control" placeholder="+7 (999) 123-45-67">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Роль</label>
+                        <select id="new-user-role" class="form-control" required>
+                            <option value="">Выберите роль</option>
+                            <option value="admin">Администратор</option>
+                            <option value="owner">Владелец техники</option>
+                            <option value="manager">Менеджер</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Компания</label>
+                        <select id="new-user-company" class="form-control" required>
+                            <option value="">Выберите компанию</option>
+                            <!-- Будет заполнено динамически -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Пароль</label>
+                        <input type="password" id="new-user-password" class="form-control" required>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn--secondary modal-cancel">Отмена</button>
+                        <button type="submit" class="btn btn--primary">Создать</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Модальное окно создания компании -->
+        <div id="create-company-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content card">
+                <div class="modal-header">
+                    <h3>Создать компанию</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <form id="create-company-form" class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Название компании *</label>
+                        <input type="text" id="new-company-name" class="form-control" placeholder="Например: ООО СтройТехника" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Описание</label>
+                        <textarea id="new-company-description" class="form-control" rows="3" placeholder="Краткое описание деятельности компании"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Контактная информация</label>
+                        <textarea id="new-company-contact" class="form-control" rows="2" placeholder="Адрес, телефон, email"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn--secondary modal-cancel">Отмена</button>
+                        <button type="submit" class="btn btn--primary">Создать</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Модальное окно добавления техники -->
+        <div id="add-equipment-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content card">
+                <div class="modal-header">
+                    <h3>Добавить технику</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <form id="add-equipment-form" class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Название техники *</label>
+                        <input type="text" id="equipment-name" class="form-control" placeholder="Например: Экскаватор Caterpillar 320D" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">ФИО владельца *</label>
+                            <input type="text" id="equipment-owner" class="form-control" required readonly>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Контактный телефон *</label>
+                            <input type="tel" id="equipment-phone" class="form-control" placeholder="+7 (999) 123-45-67" required readonly>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Telegram ID</label>
+                            <input type="text" id="equipment-telegram" class="form-control" placeholder="@username или ID">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Номерной знак</label>
+                            <input type="text" id="equipment-plate" class="form-control" placeholder="А123БВ777">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Тип техники *</label>
+                            <select id="equipment-type" class="form-control" required>
+                                <option value="">Выберите тип</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Подтип техники *</label>
+                            <select id="equipment-subtype" class="form-control" disabled required>
+                                <option value="">Сначала выберите тип</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="form-checkbox">
+                            <input type="checkbox" id="equipment-offroad">
+                            <label for="equipment-offroad">Вездеходная техника</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Дополнительное оборудование</label>
+                        <textarea id="equipment-additional" class="form-control" rows="3" placeholder="Например: гидромолот, быстросъёмное соединение, GPS"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Описание</label>
+                        <textarea id="equipment-description" class="form-control" rows="4" placeholder="Детальная информация о технике"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn--secondary modal-cancel">Отмена</button>
+                        <button type="submit" class="btn btn--primary">Добавить технику</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Модальное окно подачи ставки -->
+        <div id="respond-order-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content card">
+                <div class="modal-header">
+                    <h3>Подача ставки на аукцион</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <form id="respond-order-form" class="modal-body">
+                    <div id="order-details-display"></div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Выберите технику</label>
+                        <select id="bid-equipment" class="form-control" required>
+                            <option value="">Выберите технику</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Цена за час (руб.)</label>
+                            <input type="number" id="bid-hourly-rate" class="form-control" placeholder="Цена за час" required min="1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Цена за день (руб.)</label>
+                            <input type="number" id="bid-daily-rate" class="form-control" placeholder="Цена за день" required min="1">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Общая стоимость (руб.)</label>
+                        <input type="number" id="bid-total-price" class="form-control" placeholder="Общая стоимость за весь период" required min="1">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Комментарий (необязательно)</label>
+                        <textarea id="bid-comment" class="form-control" rows="3" placeholder="Дополнительная информация о вашем предложении"></textarea>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn--secondary modal-cancel">Отмена</button>
+                        <button type="submit" class="btn btn--primary">Подать ставку</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Модальное окно уведомлений -->
+        <div id="notifications-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content notifications-modal-content">
+                <div class="modal-header">
+                    <h3>🔔 Уведомления</h3>
+                    <div class="notifications-header-actions">
+                        <button class="btn btn--secondary btn--small" id="mark-all-read-btn">Отметить все прочитанными</button>
+                        <button class="modal-close">&times;</button>
+                    </div>
+                </div>
+                <div class="modal-body notifications-modal-body">
+                    <div class="notifications-filters">
+                        <button class="notifications-filter active" data-filter="all">Все</button>
+                        <button class="notifications-filter" data-filter="unread">Непрочитанные</button>
+                        <button class="notifications-filter" data-filter="requests">Заявки</button>
+                        <button class="notifications-filter" data-filter="auctions">Аукционы</button>
+                        <button class="notifications-filter" data-filter="system">Система</button>
+                    </div>
+                    <div class="notifications-list" id="notifications-list">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📪</div>
+                            <h3>Нет уведомлений</h3>
+                            <p>Здесь будут отображаться уведомления о новых заявках, результатах аукционов и системных событиях</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="notifications.js"></script>
+    <script src="validation.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

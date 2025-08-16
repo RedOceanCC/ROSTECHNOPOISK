@@ -1,0 +1,75 @@
+# === ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ ===
+.env
+.env.local
+.env.development
+.env.production
+config.env
+production-config.env
+backend/.env*
+backend/config.env
+
+# === NODE.JS ===
+node_modules/
+backend/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+backend/package-lock.json
+
+# === PM2 И ЛОГИ ===
+.pm2/
+logs/
+backend/logs/
+*.log
+ecosystem.config.js
+
+# === БАЗЫ ДАННЫХ (только рабочие файлы) ===
+*.db
+*.sqlite
+*.sqlite3
+backend/database/*.db
+!backend/database/schema.sql
+!backend/database/migrations/
+
+# === ВРЕМЕННЫЕ И ТЕСТОВЫЕ ФАЙЛЫ ===
+*.tmp
+*.temp
+*-test.js
+test-*.js
+debug.js
+cookies.txt
+test-report.json
+test.html
+test.db
+
+# === IDE ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cursor/
+
+# === OS ===
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# === ПРОДАКШН СБОРКА ===
+production-ready/
+build/
+dist/
+
+# === РЕЗЕРВНЫЕ КОПИИ ===
+*.bak
+*.backup
+backup/
+
+# === CSV ДАННЫЕ (кроме каталога) ===
+*.csv
+!Special_Equipment_Catalog.csv
+
+# === ДОКУМЕНТАЦИЯ (оставляем важную) ===
+dock/
+# НО README.md оставляем!

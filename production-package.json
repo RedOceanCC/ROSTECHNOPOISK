@@ -1,0 +1,20 @@
+{
+  "name": "rostechnopolsk-production",
+  "version": "1.0.0",
+  "description": "Система аренды спецтехники РОСТЕХНОПОИСК - Production",
+  "scripts": {
+    "start": "node backend/server.js",
+    "frontend": "node frontend-server.js",
+    "dev-full": "npm run start & npm run frontend",
+    "install-backend": "cd backend && npm install",
+    "init-db": "cd backend && node database/init.js",
+    "setup": "npm run install-backend && npm run init-db",
+    "migrate": "cd backend && NODE_ENV=production npm run migrate",
+    "migrate:create": "cd backend && npm run migrate:create",
+    "migrate:status": "cd backend && npm run migrate:status"
+  },
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
+  }
+}
