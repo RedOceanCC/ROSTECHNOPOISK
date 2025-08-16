@@ -528,24 +528,24 @@ class NotificationCenter {
 
     // Закрытие модального окна
     document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('modal-backdrop') || 
-            e.target.classList.contains('modal-close')) {
-          this.closeModal();
-        }
-      });
-
-      // Фильтры уведомлений
-      document.querySelectorAll('.notifications-filter').forEach(filter => {
-        filter.addEventListener('click', (e) => {
-          this.setFilter(e.target.dataset.filter);
-        });
-      });
-
-      // Отметить все как прочитанные
-      const markAllBtn = document.getElementById('mark-all-read-btn');
-      if (markAllBtn) {
-        markAllBtn.addEventListener('click', () => this.markAllAsRead());
+      if (e.target.classList.contains('modal-backdrop') || 
+          e.target.classList.contains('modal-close')) {
+        this.closeModal();
       }
+    });
+
+    // Фильтры уведомлений
+    document.querySelectorAll('.notifications-filter').forEach(filter => {
+      filter.addEventListener('click', (e) => {
+        this.setFilter(e.target.dataset.filter);
+      });
+    });
+
+    // Отметить все как прочитанные
+    const markAllBtn = document.getElementById('mark-all-read-btn');
+    if (markAllBtn) {
+      markAllBtn.addEventListener('click', () => this.markAllAsRead());
+    }
   }
 
   // Открыть модальное окно
