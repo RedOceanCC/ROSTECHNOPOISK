@@ -99,7 +99,36 @@ app.use(requestLogger);
 app.use(logRequest);
 
 // Статические файлы для Telegram WebApp (должны быть ПЕРЕД фронтендом)
-app.use('/telegram', express.static(path.join(__dirname, '../telegram-webapp')));
+const telegramPath = path.join(__dirname, '../telegram-webapp');
+console.log('🤖 Telegram WebApp путь:', telegramPath);
+console.log('🤖 Файл существует:', require('fs').existsSync(path.join(telegramPath, 'request.html')));
+
+// Пробуем разные возможные пути
+const possiblePaths = [
+  path.join(__dirname, '../telegram-webapp'),
+  path.join(__dirname, '../../telegram-webapp'),
+  path.join(process.cwd(), 'telegram-webapp'),
+  path.join(__dirname, '../../../telegram-webapp')
+];
+
+let telegramWebappPath = null;
+for (const testPath of possiblePaths) {
+  if (require('fs').existsSync(path.join(testPath, 'request.html'))) {
+    telegramWebappPath = testPath;
+    console.log('✅ Telegram WebApp найден в:', testPath);
+    break;
+  } else {
+    console.log('❌ Не найден в:', testPath);
+  }
+}
+
+if (telegramWebappPath) {
+  app.use('/telegram', express.static(telegramWebappPath));
+} else {
+  console.error('❌ КРИТИЧЕСКАЯ ОШИБКА: Telegram WebApp файлы не найдены!');
+  console.log('📁 Текущая директория:', process.cwd());
+  console.log('📁 __dirname:', __dirname);
+}
 
 // Статические файлы (для фронтенда)
 if (process.env.NODE_ENV === 'production') {
@@ -125,6 +154,33 @@ app.get('/api/health', (req, res) => {
     message: 'Сервер РОСТЕХНОПОИСК работает',
     timestamp: new Date().toISOString(),
     version: '1.0.0'
+  });
+});
+
+// Диагностический роут для Telegram
+app.get('/api/telegram/debug', (req, res) => {
+  const fs = require('fs');
+  const possiblePaths = [
+    path.join(__dirname, '../telegram-webapp'),
+    path.join(__dirname, '../../telegram-webapp'),
+    path.join(process.cwd(), 'telegram-webapp'),
+    path.join(__dirname, '../../../telegram-webapp')
+  ];
+
+  const pathsInfo = possiblePaths.map(testPath => ({
+    path: testPath,
+    exists: fs.existsSync(testPath),
+    requestHtmlExists: fs.existsSync(path.join(testPath, 'request.html')),
+    files: fs.existsSync(testPath) ? fs.readdirSync(testPath).catch(() => []) : []
+  }));
+
+  res.json({
+    success: true,
+    currentDir: process.cwd(),
+    dirname: __dirname,
+    nodeEnv: process.env.NODE_ENV,
+    telegramBotEnabled: !!process.env.TELEGRAM_BOT_TOKEN,
+    possiblePaths: pathsInfo
   });
 });
 
