@@ -1,9 +1,9 @@
 {
-  "timestamp": "2025-08-15T09:45:24.231Z",
+  "timestamp": "2025-08-16T10:20:38.411Z",
   "summary": {
     "total": 10,
-    "passed": 1,
-    "failed": 9
+    "passed": 2,
+    "failed": 8
   },
   "details": [
     {
@@ -43,8 +43,8 @@
       "error": "Command failed: npm run test:coverage"
     },
     {
-      "success": false,
-      "error": "Command failed: npm run lint"
+      "success": true,
+      "output": null
     }
   ]
 }

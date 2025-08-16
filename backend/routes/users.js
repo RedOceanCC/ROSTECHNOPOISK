@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const { requireAuth, requireAdmin, validateRequired } = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 // Применяем авторизацию ко всем роутам
 router.use(requireAuth);
@@ -80,6 +81,17 @@ router.post('/',
       };
       
       const user = await User.create(userData);
+      
+      // Логируем создание пользователя
+      logger.info('Пользователь успешно создан', {
+        admin_id: req.user.id,
+        admin_name: req.user.name,
+        created_user_id: user.id,
+        created_user_name: user.name,
+        created_user_role: user.role,
+        created_user_company_id: user.company_id,
+        timestamp: new Date().toISOString()
+      });
       
       res.status(201).json({
         success: true,
@@ -181,8 +193,29 @@ router.delete('/:id', requireAdmin, async (req, res, next) => {
   try {
     const { id } = req.params;
     
+    // Получаем информацию о пользователе перед удалением
+    const userToDelete = await User.findById(id);
+    
+    if (!userToDelete) {
+      logger.warn('Попытка удаления несуществующего пользователя', {
+        admin_id: req.user.id,
+        admin_name: req.user.name,
+        target_user_id: id
+      });
+      
+      return res.status(404).json({
+        success: false,
+        message: 'Пользователь не найден'
+      });
+    }
+    
     // Нельзя удалить самого себя
     if (req.user.id === parseInt(id)) {
+      logger.warn('Попытка самоудаления администратора', {
+        admin_id: req.user.id,
+        admin_name: req.user.name
+      });
+      
       return res.status(400).json({
         success: false,
         message: 'Нельзя удалить собственный аккаунт'
@@ -192,11 +225,29 @@ router.delete('/:id', requireAdmin, async (req, res, next) => {
     const deleted = await User.delete(id);
     
     if (!deleted) {
+      logger.error('Ошибка удаления пользователя из БД', {
+        admin_id: req.user.id,
+        admin_name: req.user.name,
+        target_user_id: id,
+        target_user_name: userToDelete.name
+      });
+      
       return res.status(404).json({
         success: false,
         message: 'Пользователь не найден'
       });
     }
+    
+    // Логируем успешное удаление
+    logger.info('Пользователь успешно удален', {
+      admin_id: req.user.id,
+      admin_name: req.user.name,
+      deleted_user_id: id,
+      deleted_user_name: userToDelete.name,
+      deleted_user_role: userToDelete.role,
+      deleted_user_company: userToDelete.company_name,
+      timestamp: new Date().toISOString()
+    });
     
     res.json({
       success: true,
@@ -204,6 +255,14 @@ router.delete('/:id', requireAdmin, async (req, res, next) => {
     });
     
   } catch (error) {
+    logger.error('Критическая ошибка при удалении пользователя', {
+      admin_id: req.user.id,
+      admin_name: req.user.name,
+      target_user_id: req.params.id,
+      error: error.message,
+      stack: error.stack
+    });
+    
     next(error);
   }
 });

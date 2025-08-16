@@ -155,3 +155,5 @@ ecosystem.config.js
 nginx.conf
 docker-compose.yml
 Dockerfile
+.cursorignore/
+rules/

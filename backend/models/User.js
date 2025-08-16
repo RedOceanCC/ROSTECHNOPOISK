@@ -66,6 +66,7 @@ class User {
              c.name as company_name
       FROM users u 
       LEFT JOIN companies c ON u.company_id = c.id 
+      WHERE u.status = 'active'
       ORDER BY u.created_at DESC
     `;
     

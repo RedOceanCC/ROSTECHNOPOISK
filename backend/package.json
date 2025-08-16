@@ -17,19 +17,25 @@
     "db-status": "NODE_ENV=production node database/migrate-prod.js check"
   },
   "dependencies": {
+    "axios": "^1.6.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "express-session": "^1.17.3",
-    "sqlite3": "^5.1.6",
-    "cors": "^2.8.5",
-    "bcryptjs": "^2.4.3",
     "node-cron": "^3.0.3",
-    "axios": "^1.6.0",
-    "dotenv": "^16.3.1"
+    "sqlite3": "^5.1.6",
+    "supertest": "^7.1.4"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
   },
-  "keywords": ["спецтехника", "аренда", "аукцион", "MVP"],
+  "keywords": [
+    "спецтехника",
+    "аренда",
+    "аукцион",
+    "MVP"
+  ],
   "author": "РОСТЕХНОПОИСК",
   "license": "MIT"
 }
