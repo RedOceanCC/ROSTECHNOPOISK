@@ -1,6 +1,19 @@
-require('dotenv').config({
-  path: `./.env.${process.env.NODE_ENV || 'local'}`
-});
+// Загрузка конфигурации в зависимости от среды
+const envFile = process.env.NODE_ENV === 'production' 
+  ? './production-config.env'  // Для продакшена используем production-config.env
+  : process.env.NODE_ENV === 'development'
+    ? './config.env'          // Для разработки используем config.env  
+    : `./.env.${process.env.NODE_ENV || 'local'}`;  // Для остальных стандартные .env файлы
+
+require('dotenv').config({ path: envFile });
+
+// Отладочная информация для продакшена
+if (process.env.NODE_ENV === 'production') {
+  console.log('🔧 Продакшн режим:');
+  console.log(`   ENV файл: ${envFile}`);
+  console.log(`   DB_PATH: ${process.env.DB_PATH}`);
+  console.log(`   NODE_ENV: ${process.env.NODE_ENV}`);
+}
 
 const express = require('express');
 const session = require('express-session');
