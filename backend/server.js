@@ -167,12 +167,26 @@ app.get('/api/telegram/debug', (req, res) => {
     path.join(__dirname, '../../../telegram-webapp')
   ];
 
-  const pathsInfo = possiblePaths.map(testPath => ({
-    path: testPath,
-    exists: fs.existsSync(testPath),
-    requestHtmlExists: fs.existsSync(path.join(testPath, 'request.html')),
-    files: fs.existsSync(testPath) ? fs.readdirSync(testPath).catch(() => []) : []
-  }));
+  const pathsInfo = possiblePaths.map(testPath => {
+    const exists = fs.existsSync(testPath);
+    const requestHtmlExists = fs.existsSync(path.join(testPath, 'request.html'));
+    let files = [];
+    
+    try {
+      if (exists) {
+        files = fs.readdirSync(testPath);
+      }
+    } catch (error) {
+      files = [`Error reading directory: ${error.message}`];
+    }
+    
+    return {
+      path: testPath,
+      exists,
+      requestHtmlExists,
+      files
+    };
+  });
 
   res.json({
     success: true,
