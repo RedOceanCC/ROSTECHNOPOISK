@@ -98,13 +98,13 @@ app.use((req, res, next) => {
 app.use(requestLogger);
 app.use(logRequest);
 
+// Статические файлы для Telegram WebApp (должны быть ПЕРЕД фронтендом)
+app.use('/telegram', express.static(path.join(__dirname, '../telegram-webapp')));
+
 // Статические файлы (для фронтенда)
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../frontend/build')));
 }
-
-// Статические файлы для Telegram WebApp
-app.use('/telegram', express.static(path.join(__dirname, '../telegram-webapp')));
 
 // API роуты
 app.use('/api/auth', authRoutes);
@@ -128,9 +128,13 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Обслуживание фронтенда в продакшене
+// Обслуживание фронтенда в продакшене (исключаем API и Telegram routes)
 if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
+  app.get('*', (req, res, next) => {
+    // Не перехватываем API и Telegram запросы
+    if (req.path.startsWith('/api/') || req.path.startsWith('/telegram/')) {
+      return next();
+    }
     res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
   });
 }
