@@ -63,13 +63,29 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production' && process.env.HTTPS === 'true', // HTTPS только если SSL настроен
-    httpOnly: true,
+    secure: false, // Временно отключаем secure для диагностики
+    httpOnly: false, // Временно отключаем httpOnly
     maxAge: 24 * 60 * 60 * 1000, // 24 часа
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' // Для CORS в продакшене
+    sameSite: 'lax', // Более мягкий режим
+    domain: process.env.NODE_ENV === 'production' ? '.xn--e1aggkdcahelgf4b.xn--p1ai' : undefined
   },
   name: 'rostechnopoisk.sid' // Уникальное имя сессии
 }));
+
+// Отладочное middleware для cookies
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'production' && req.url.startsWith('/api/')) {
+    logger.debug('Request debug', {
+      url: req.url,
+      method: req.method,
+      cookies: req.headers.cookie,
+      sessionId: req.sessionID,
+      hasSession: !!req.session,
+      hasUser: !!(req.session && req.session.user)
+    });
+  }
+  next();
+});
 
 // Подробное логирование запросов
 app.use(requestLogger);

@@ -75,6 +75,15 @@ router.post('/login', businessLogger('Попытка авторизации'), a
     // Сохраняем пользователя в сессии
     req.session.user = user;
     
+    // Отладочное логирование сессии
+    logger.debug('Session после логина', {
+      sessionId: req.sessionID,
+      hasUser: !!req.session.user,
+      userId: user.id,
+      userName: user.name,
+      userRole: user.role
+    });
+    
     // Логируем успешную авторизацию
     logger.auth('Успешная авторизация', user, {
       ...clientInfo,
