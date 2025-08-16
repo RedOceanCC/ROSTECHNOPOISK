@@ -30,6 +30,13 @@ const logRoutes = require('./routes/logs');
 // Импорт сервисов
 const AuctionService = require('./services/AuctionService');
 
+// Импорт Telegram бота
+let TelegramWebApp = null;
+let telegramBot = null;
+if (process.env.TELEGRAM_BOT_TOKEN) {
+  TelegramWebApp = require('./telegram-bot');
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -91,27 +98,13 @@ app.use((req, res, next) => {
 app.use(requestLogger);
 app.use(logRequest);
 
-// Логирование всех запросов к /telegram
-app.use('/telegram', (req, res, next) => {
-  console.log('📱 Telegram запрос:', req.method, req.url, req.path);
-  next();
-});
-
-// Статические файлы для Telegram WebApp (должны быть ПЕРЕД фронтендом)
-const telegramWebappPath = path.join(__dirname, '../telegram-webapp');
-console.log('🤖 Telegram WebApp настроен:', telegramWebappPath);
-
-if (require('fs').existsSync(path.join(telegramWebappPath, 'request.html'))) {
-  app.use('/telegram', express.static(telegramWebappPath));
-  console.log('✅ Telegram WebApp активирован');
-} else {
-  console.error('❌ Telegram WebApp файлы не найдены:', telegramWebappPath);
-}
-
 // Статические файлы (для фронтенда)
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../frontend/build')));
 }
+
+// Статические файлы для Telegram WebApp
+app.use('/telegram', express.static(path.join(__dirname, '../telegram-webapp')));
 
 // API роуты
 app.use('/api/auth', authRoutes);
@@ -135,64 +128,9 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Прямой тестовый роут для Telegram
-app.get('/telegram/test-direct', (req, res) => {
-  res.send(`
-    <h1>✅ Прямой роут работает!</h1>
-    <p>Время: ${new Date().toLocaleString()}</p>
-    <p>Node ENV: ${process.env.NODE_ENV}</p>
-    <p>Telegram Bot Token: ${process.env.TELEGRAM_BOT_TOKEN ? 'Установлен' : 'Не установлен'}</p>
-  `);
-});
-
-// Диагностический роут для Telegram
-app.get('/api/telegram/debug', (req, res) => {
-  const fs = require('fs');
-  const possiblePaths = [
-    path.join(__dirname, '../telegram-webapp'),
-    path.join(__dirname, '../../telegram-webapp'),
-    path.join(process.cwd(), 'telegram-webapp'),
-    path.join(__dirname, '../../../telegram-webapp')
-  ];
-
-  const pathsInfo = possiblePaths.map(testPath => {
-    const exists = fs.existsSync(testPath);
-    const requestHtmlExists = fs.existsSync(path.join(testPath, 'request.html'));
-    let files = [];
-    
-    try {
-      if (exists) {
-        files = fs.readdirSync(testPath);
-      }
-    } catch (error) {
-      files = [`Error reading directory: ${error.message}`];
-    }
-    
-    return {
-      path: testPath,
-      exists,
-      requestHtmlExists,
-      files
-    };
-  });
-
-  res.json({
-    success: true,
-    currentDir: process.cwd(),
-    dirname: __dirname,
-    nodeEnv: process.env.NODE_ENV,
-    telegramBotEnabled: !!process.env.TELEGRAM_BOT_TOKEN,
-    possiblePaths: pathsInfo
-  });
-});
-
-// Обслуживание фронтенда в продакшене (исключаем API и Telegram routes)
+// Обслуживание фронтенда в продакшене
 if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res, next) => {
-    // Не перехватываем API и Telegram запросы
-    if (req.path.startsWith('/api/') || req.path.startsWith('/telegram/')) {
-      return next();
-    }
+  app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
   });
 }
@@ -231,19 +169,38 @@ async function startServer() {
     await runMigrations();
     logger.info('Миграции выполнены успешно');
     
+    // Инициализируем Telegram бота если токен установлен
+    if (process.env.TELEGRAM_BOT_TOKEN && TelegramWebApp) {
+      telegramBot = new TelegramWebApp();
+      
+      // Добавляем роуты Telegram WebApp
+      TelegramWebApp.setupRoutes(app);
+      
+      logger.info('Telegram бот инициализирован');
+      console.log('🤖 Telegram бот запущен');
+    } else {
+      logger.warn('TELEGRAM_BOT_TOKEN не установлен, бот не запущен');
+      console.log('⚠️  TELEGRAM_BOT_TOKEN не установлен, бот не запущен');
+    }
+    
     // Запускаем сервер
     app.listen(PORT, () => {
       logger.info(`Сервер РОСТЕХНОПОИСК запущен на порту ${PORT}`, {
         port: PORT,
         mode: process.env.NODE_ENV || 'development',
         apiUrl: `http://localhost:${PORT}/api`,
-        database: process.env.DB_PATH || path.join(__dirname, 'database/rostechnopolsk.db')
+        database: process.env.DB_PATH || path.join(__dirname, 'database/rostechnopolsk.db'),
+        telegramBot: !!telegramBot
       });
       
       console.log(`🚀 Сервер РОСТЕХНОПОИСК запущен на порту ${PORT}`);
       console.log(`📊 Режим: ${process.env.NODE_ENV || 'development'}`);
       console.log(`🔗 API доступно по адресу: http://localhost:${PORT}/api`);
       console.log(`💾 База данных: ${process.env.DB_PATH || path.join(__dirname, 'database/rostechnopolsk.db')}`);
+      
+      if (telegramBot) {
+        console.log(`🤖 Telegram WebApp: http://localhost:${PORT}/telegram/`);
+      }
       
       if (process.env.NODE_ENV !== 'production') {
         console.log(`\n🎯 Демо пароли для входа:`);
