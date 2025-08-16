@@ -840,21 +840,29 @@ class NotificationCenter {
       console.log(`📊 Ответ от сервера получен за ${duration}ms:`, {
         success: response.success,
         notificationsCount: response.notifications?.length || 0,
-        response: response
+        hasNotificationsArray: Array.isArray(response.notifications),
+        responseKeys: Object.keys(response),
+        fullResponse: response
       });
       
       if (response.success) {
-        // Преобразуем серверные уведомления в формат фронтенда
-        this.notifications = response.notifications.map(notification => ({
-          id: notification.id,
-          title: notification.title,
-          message: notification.message,
-          type: this.mapServerTypeToClient(notification.type),
-          created_at: notification.created_at,
-          read: notification.read_at !== null
-        }));
-        
-        console.log(`📥 Загружено ${this.notifications.length} уведомлений:`, this.notifications);
+        // Проверяем, что notifications это массив
+        if (Array.isArray(response.notifications)) {
+          // Преобразуем серверные уведомления в формат фронтенда
+          this.notifications = response.notifications.map(notification => ({
+            id: notification.id,
+            title: notification.title,
+            message: notification.message,
+            type: this.mapServerTypeToClient(notification.type),
+            created_at: notification.created_at,
+            read: notification.read_at !== null
+          }));
+          
+          console.log(`📥 Загружено ${this.notifications.length} уведомлений:`, this.notifications);
+        } else {
+          console.error('❌ response.notifications не является массивом:', response.notifications);
+          this.notifications = [];
+        }
         
         this.updateBadges();
         this.lastUpdateTime = new Date();
