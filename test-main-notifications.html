@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест уведомлений - Основная страница</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .debug-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: white;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            padding: 15px;
+            max-width: 400px;
+            z-index: 10000;
+            font-family: monospace;
+            font-size: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .debug-panel h3 {
+            margin: 0 0 10px 0;
+            color: #007bff;
+        }
+        .debug-log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .test-btn {
+            margin: 5px;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            background: #007bff;
+            color: white;
+        }
+        .mock-dashboard {
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .mock-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .notifications-btn {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            position: relative;
+        }
+        .notifications-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Мок дашборда для тестирования -->
+    <div class="mock-dashboard">
+        <div class="mock-header">
+            <h1>ТЕСТ: Система уведомлений</h1>
+            <button class="notifications-btn" id="test-notifications-btn">
+                <span class="notifications-icon">🔔</span>
+                <span class="notifications-badge" id="test-notifications-count">3</span>
+            </button>
+        </div>
+        
+        <p>Эта страница тестирует систему уведомлений с подключенными основными скриптами.</p>
+        <p>Нажмите на кнопку уведомлений (🔔) в правом верхнем углу.</p>
+    </div>
+
+    <!-- Модальное окно уведомлений (копия из index.html) -->
+    <div id="notifications-modal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content notifications-modal-content">
+            <div class="modal-header">
+                <h3>🔔 Уведомления</h3>
+                <div class="notifications-header-actions">
+                    <button class="btn btn--secondary btn--small" id="mark-all-read-btn">Отметить все прочитанными</button>
+                    <button class="modal-close">&times;</button>
+                </div>
+            </div>
+            <div class="modal-body notifications-modal-body">
+                <div class="notifications-filters">
+                    <button class="notifications-filter active" data-filter="all">Все</button>
+                    <button class="notifications-filter" data-filter="unread">Непрочитанные</button>
+                    <button class="notifications-filter" data-filter="requests">Заявки</button>
+                    <button class="notifications-filter" data-filter="auctions">Аукционы</button>
+                    <button class="notifications-filter" data-filter="system">Система</button>
+                </div>
+                <div class="notifications-list" id="notifications-list">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📪</div>
+                        <h3>Нет уведомлений</h3>
+                        <p>Здесь будут отображаться уведомления о новых заявках, результатах аукционов и системных событиях</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Панель отладки -->
+    <div class="debug-panel">
+        <h3>🔧 Отладка уведомлений</h3>
+        <div>
+            <button class="test-btn" onclick="runDebug()">Диагностика</button>
+            <button class="test-btn" onclick="testModal()">Тест модала</button>
+            <button class="test-btn" onclick="clearLog()">Очистить</button>
+        </div>
+        <div class="debug-log" id="debug-log"></div>
+    </div>
+
+    <!-- Подключаем основные скрипты -->
+    <script src="notifications.js"></script>
+    <script src="validation.js"></script>
+    <script src="app.js"></script>
+
+    <script>
+        let debugLog = document.getElementById('debug-log');
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            debugLog.textContent += `[${timestamp}] ${message}\n`;
+            debugLog.scrollTop = debugLog.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            debugLog.textContent = '';
+        }
+
+        function runDebug() {
+            clearLog();
+            log('🔧 Запуск диагностики...');
+            
+            // Проверка глобальных объектов
+            log('📊 Глобальные объекты:');
+            log(`  notifications: ${typeof window.notifications}`);
+            log(`  notificationCenter: ${typeof window.notificationCenter}`);
+            log(`  notificationManager: ${typeof window.notificationManager}`);
+            
+            // Проверка DOM
+            const btns = document.querySelectorAll('.notifications-btn');
+            log(`  Кнопки уведомлений: ${btns.length}`);
+            
+            const modal = document.getElementById('notifications-modal');
+            log(`  Модальное окно: ${!!modal}`);
+            
+            if (modal) {
+                log(`  Модал скрыт: ${modal.classList.contains('hidden')}`);
+            }
+            
+            // Проверка инициализации
+            if (window.notificationCenter) {
+                log('✅ NotificationCenter найден');
+                if (typeof window.notificationCenter.openModal === 'function') {
+                    log('✅ Метод openModal доступен');
+                }
+            } else {
+                log('❌ NotificationCenter не найден');
+            }
+        }
+
+        function testModal() {
+            log('🔔 Тестируем открытие модала...');
+            
+            if (window.notificationCenter && typeof window.notificationCenter.openModal === 'function') {
+                window.notificationCenter.openModal();
+                log('✅ Вызван openModal()');
+                
+                setTimeout(() => {
+                    const modal = document.getElementById('notifications-modal');
+                    const isOpen = modal && !modal.classList.contains('hidden');
+                    log(`Модал открыт: ${isOpen}`);
+                }, 100);
+            } else {
+                log('❌ openModal() недоступен');
+            }
+        }
+
+        // Автозапуск диагностики
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                log('📄 Страница загружена');
+                runDebug();
+            }, 1000);
+        });
+
+        // Перехват ошибок
+        window.addEventListener('error', (e) => {
+            log(`❌ JS ошибка: ${e.message}`);
+            log(`   Файл: ${e.filename}:${e.lineno}`);
+        });
+    </script>
+</body>
+</html>

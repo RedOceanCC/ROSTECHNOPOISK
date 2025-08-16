@@ -1821,9 +1821,7 @@ class RealTimeUpdater {
           return orderDate > this.lastOrderCheck;
         });
 
-        console.log(`🔍 AutoUpdate: Найдено ${newOrders.length} новых заявок`);
         newOrders.forEach(order => {
-          console.log(`📋 AutoUpdate: Обрабатываем заявку #${order.id} - ${order.equipment_type}`);
           if (window.notificationCenter) {
             window.notificationCenter.addNotification({
               title: '🚜 Новая заявка!',
@@ -1857,9 +1855,7 @@ class RealTimeUpdater {
                  new Date(order.auction_deadline) > this.lastAuctionCheck;
         });
 
-        console.log(`🔍 AutoUpdate: Найдено ${completedAuctions.length} завершенных аукционов`);
         completedAuctions.forEach(order => {
-          console.log(`🏆 AutoUpdate: Обрабатываем аукцион #${order.id} - ${order.equipment_type}`);
           if (window.notificationCenter) {
             window.notificationCenter.addNotification({
               title: '🏆 Аукцион завершен!',
@@ -1971,7 +1967,18 @@ function initializeNotifications() {
     }
   });
 
-  // Обработчики для кнопок уведомлений удалены - теперь используется NotificationCenter
+  // Обработчики переключения на вкладку уведомлений
+  document.addEventListener('click', (e) => {
+    if (e.target.matches('[data-tab="notifications"]')) {
+      e.preventDefault();
+      showTab('notifications');
+      
+      // Загружаем уведомления при открытии вкладки
+      if (window.notificationCenter) {
+        renderNotificationsList();
+      }
+    }
+  });
 }
 
 // Отображение списка уведомлений в интерфейсе
@@ -2103,7 +2110,13 @@ document.addEventListener('DOMContentLoaded', function() {
   initializeNotifications();
 
   // Добавляем демо уведомления для тестирования (только в dev-режиме)
-  // Автоматическое создание демо-уведомлений удалено - используйте createTestNotification()
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    setTimeout(() => {
+      if (window.notificationCenter) {
+        window.notificationCenter.addDemoNotifications();
+      }
+    }, 2000);
+  }
   
   // Инициализируем форму входа
   const loginForm = document.getElementById('login-form');

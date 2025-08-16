@@ -46,14 +46,17 @@
                         </div>
                         <button class="notifications-btn" id="admin-notifications-btn">
                             <span class="notifications-icon">🔔</span>
-                            <span class="notifications-badge" id="admin-notifications-count" style="display: flex;">0</span>
+                            <span class="notifications-badge" id="admin-notifications-count">0</span>
                         </button>
                     </div>
                     <nav class="sidebar-nav">
                         <button class="sidebar-nav-item active" data-tab="users">Пользователи</button>
                         <button class="sidebar-nav-item" data-tab="companies">Компании</button>
                         <button class="sidebar-nav-item" data-tab="partnerships">Партнерства</button>
-
+                        <button class="sidebar-nav-item notification-nav-btn" data-tab="notifications">
+                            🔔 Уведомления
+                            <span class="notification-badge" id="admin-notification-badge" style="display: none;">0</span>
+                        </button>
                         <button class="sidebar-nav-item logout-btn">Выйти</button>
                     </nav>
                 </aside>
@@ -156,8 +159,8 @@
                                 </button>
                             </div>
                             
-                            <div class="notifications-list" id="admin-notifications-list">
-                                <div class="loading-spinner" id="admin-notifications-loading">
+                            <div class="notifications-list" id="notifications-list">
+                                <div class="loading-spinner" id="notifications-loading">
                                     Загрузка уведомлений...
                                 </div>
                             </div>
@@ -178,13 +181,16 @@
                         </div>
                         <button class="notifications-btn" id="owner-notifications-btn">
                             <span class="notifications-icon">🔔</span>
-                            <span class="notifications-badge" id="owner-notifications-count" style="display: flex;">0</span>
+                            <span class="notifications-badge" id="owner-notifications-count">0</span>
                         </button>
                     </div>
                     <nav class="sidebar-nav">
                         <button class="sidebar-nav-item active" data-tab="equipment">Моя техника</button>
                         <button class="sidebar-nav-item" data-tab="orders">Мои заявки</button>
-
+                        <button class="sidebar-nav-item notification-nav-btn" data-tab="notifications">
+                            🔔 Уведомления
+                            <span class="notification-badge" id="owner-notification-badge" style="display: none;">0</span>
+                        </button>
                         <button class="sidebar-nav-item logout-btn">Выйти</button>
                     </nav>
                 </aside>
@@ -222,8 +228,8 @@
                                 </button>
                             </div>
                             
-                            <div class="notifications-list" id="owner-notifications-list">
-                                <div class="loading-spinner" id="owner-notifications-loading">
+                            <div class="notifications-list" id="notifications-list">
+                                <div class="loading-spinner" id="notifications-loading">
                                     Загрузка уведомлений...
                                 </div>
                             </div>
@@ -244,13 +250,16 @@
                         </div>
                         <button class="notifications-btn" id="manager-notifications-btn">
                             <span class="notifications-icon">🔔</span>
-                            <span class="notifications-badge" id="manager-notifications-count" style="display: flex;">0</span>
+                            <span class="notifications-badge" id="manager-notifications-count">0</span>
                         </button>
                     </div>
                     <nav class="sidebar-nav">
                         <button class="sidebar-nav-item active" data-tab="create-order">Создать заявку</button>
                         <button class="sidebar-nav-item" data-tab="my-orders">Мои заявки</button>
-
+                        <button class="sidebar-nav-item notification-nav-btn" data-tab="notifications">
+                            🔔 Уведомления
+                            <span class="notification-badge" id="manager-notification-badge" style="display: none;">0</span>
+                        </button>
                         <button class="sidebar-nav-item logout-btn">Выйти</button>
                     </nav>
                 </aside>
@@ -324,8 +333,8 @@
                                 </button>
                             </div>
                             
-                            <div class="notifications-list" id="manager-notifications-list">
-                                <div class="loading-spinner" id="manager-notifications-loading">
+                            <div class="notifications-list" id="notifications-list">
+                                <div class="loading-spinner" id="notifications-loading">
                                     Загрузка уведомлений...
                                 </div>
                             </div>
@@ -559,37 +568,109 @@
     <script src="notifications.js"></script>
     <script src="validation.js"></script>
     <script src="app.js"></script>
-        <!-- NotificationSystem v2.0 встроенная диагностика -->
+    <script src="notification-diagnostics.js"></script>
+    
+    <!-- Встроенная диагностика уведомлений -->
     <script>
-    // Автоматическая диагностика нового модуля v2.0
+    // 🔧 БЫСТРАЯ ДИАГНОСТИКА УВЕДОМЛЕНИЙ
     document.addEventListener('DOMContentLoaded', function() {
         setTimeout(function() {
-            console.log('🔔 ДИАГНОСТИКА NotificationSystem v2.0:');
+            console.log('🔍 ДИАГНОСТИКА УВЕДОМЛЕНИЙ:');
+            
+            // Проверка глобальных объектов
+            console.log('📊 Глобальные объекты:');
             console.log('  window.notifications:', typeof window.notifications);
             console.log('  window.notificationCenter:', typeof window.notificationCenter);
+            console.log('  window.notificationManager:', typeof window.notificationManager);
+            console.log('  window.apiRequest:', typeof window.apiRequest);
+            
+            // Проверка DOM элементов
+            console.log('📄 DOM элементы:');
             console.log('  Кнопки уведомлений:', document.querySelectorAll('.notifications-btn').length);
             console.log('  Модальное окно:', !!document.getElementById('notifications-modal'));
+            console.log('  Список уведомлений:', !!document.getElementById('notifications-list'));
             
-            if (window.notifications) {
-                console.log('✅ NotificationSystem v2.0 готова к работе');
+            // Проверка инициализации
+            if (window.notificationCenter) {
+                console.log('✅ NotificationCenter инициализирован');
+                console.log('  Уведомлений:', window.notificationCenter.notifications?.length || 0);
+                console.log('  Модал открыт:', window.notificationCenter.isModalOpen);
             } else {
-                console.error('❌ NotificationSystem v2.0 НЕ инициализирована!');
+                console.error('❌ NotificationCenter НЕ инициализирован!');
             }
-        }, 1000);
+            
+            if (window.apiRequest) {
+                console.log('✅ window.apiRequest доступен');
+            } else {
+                console.warn('⚠️ window.apiRequest недоступен');
+            }
+            
+            console.log('🔍 Диагностика завершена');
+        }, 2000);
     });
     
-    // Функция для создания тестового уведомления
-    window.createTestNotification = function() {
-        if (window.notifications) {
-            window.notifications.success('Тестовое уведомление v2.0 создано успешно!');
-            console.log('✅ Тестовое уведомление создано через новую систему');
-        } else {
-            console.error('❌ NotificationSystem v2.0 недоступна');
-        }
-    };
+         // Функция для ручного запуска диагностики
+     window.runNotificationDiagnostics = function() {
+         console.log('🔧 ЗАПУСК РУЧНОЙ ДИАГНОСТИКИ...');
+         
+         // Проверка API
+         if (window.apiRequest) {
+             window.apiRequest('/notifications')
+                 .then(response => {
+                     console.log('✅ API уведомлений работает:', response);
+                 })
+                 .catch(error => {
+                     console.error('❌ Ошибка API уведомлений:', error);
+                 });
+         } else {
+             console.error('❌ window.apiRequest недоступен');
+         }
+         
+         // Проверка модального окна
+         const modal = document.getElementById('notifications-modal');
+         if (modal) {
+             console.log('✅ Модальное окно найдено');
+             console.log('  Скрыто:', modal.classList.contains('hidden'));
+             console.log('  Классы:', Array.from(modal.classList));
+         } else {
+             console.error('❌ Модальное окно не найдено');
+         }
+         
+         // Проверка кнопок
+         const btns = document.querySelectorAll('.notifications-btn');
+         console.log('🔘 Кнопки уведомлений:', btns.length);
+         btns.forEach((btn, i) => {
+             console.log(`  Кнопка ${i+1}:`, btn.id || btn.className);
+         });
+     };
+     
+     // Функция для создания тестового уведомления
+     window.createTestNotification = function() {
+         console.log('📝 Создание тестового уведомления...');
+         
+         if (window.apiRequest) {
+             window.apiRequest('/notifications/test', {
+                 method: 'POST'
+             })
+             .then(response => {
+                 console.log('✅ Тестовое уведомление создано:', response);
+                 // Обновляем уведомления
+                 if (window.notificationCenter) {
+                     window.notificationCenter.loadNotifications();
+                 }
+             })
+             .catch(error => {
+                 console.error('❌ Ошибка создания тестового уведомления:', error);
+             });
+         } else {
+             console.error('❌ window.apiRequest недоступен');
+         }
+     };
     
-    console.log('🔔 NotificationSystem v2.0 диагностика загружена');
-    console.log('💡 Функции: createTestNotification()');
+    console.log('🔧 Встроенная диагностика уведомлений загружена');
+    console.log('💡 Доступные функции:');
+    console.log('  runNotificationDiagnostics() - полная диагностика');
+    console.log('  createTestNotification() - создать тестовое уведомление');
     </script>
 </body>
 </html>
