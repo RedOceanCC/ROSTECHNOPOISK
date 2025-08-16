@@ -504,7 +504,10 @@ class NotificationCenter {
     this.notifications = [];
     this.currentFilter = 'all';
     this.isModalOpen = false;
+    this.pollInterval = null;
+    this.lastUpdateTime = null;
     this.initializeEventListeners();
+    this.loadNotifications();
   }
 
   // Инициализация обработчиков событий
@@ -800,6 +803,172 @@ class NotificationCenter {
     if (diffDays < 7) return `${diffDays} дн назад`;
     
     return date.toLocaleDateString('ru-RU');
+  }
+
+  // Загрузить уведомления с сервера
+  async loadNotifications() {
+    try {
+      // Проверяем, авторизован ли пользователь
+      if (!window.apiRequest) {
+        console.warn('API недоступно, используем локальные уведомления');
+        return;
+      }
+
+      const response = await window.apiRequest('/notifications');
+      if (response.success) {
+        // Преобразуем серверные уведомления в формат фронтенда
+        this.notifications = response.notifications.map(notification => ({
+          id: notification.id,
+          title: notification.title,
+          message: notification.message,
+          type: this.mapServerTypeToClient(notification.type),
+          created_at: notification.created_at,
+          read: notification.read_at !== null
+        }));
+        
+        this.updateBadge();
+        this.lastUpdateTime = new Date();
+        
+        // Запускаем периодическое обновление
+        this.startPolling();
+      }
+    } catch (error) {
+      console.warn('Ошибка загрузки уведомлений с сервера:', error);
+      // Продолжаем работу с локальными уведомлениями
+    }
+  }
+
+  // Преобразование типов уведомлений с сервера в типы фронтенда
+  mapServerTypeToClient(serverType) {
+    const mapping = {
+      'new_request': 'request',
+      'bid_accepted': 'auction',
+      'bid_rejected': 'auction', 
+      'auction_closed': 'auction',
+      'bid_won': 'auction',
+      'bid_lost': 'auction',
+      'auction_no_bids': 'auction',
+      'system': 'system'
+    };
+    
+    return mapping[serverType] || 'system';
+  }
+
+  // Запустить периодическое обновление уведомлений
+  startPolling() {
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+    }
+    
+    // Обновляем каждые 30 секунд
+    this.pollInterval = setInterval(() => {
+      this.checkForNewNotifications();
+    }, 30000);
+  }
+
+  // Остановить периодическое обновление
+  stopPolling() {
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+      this.pollInterval = null;
+    }
+  }
+
+  // Проверить новые уведомления
+  async checkForNewNotifications() {
+    try {
+      if (!window.apiRequest) return;
+      
+      const response = await window.apiRequest('/notifications/unread');
+      if (response.success && response.notifications.length > 0) {
+        // Проверяем, есть ли новые уведомления
+        const existingIds = new Set(this.notifications.map(n => n.id));
+        const newNotifications = response.notifications.filter(n => !existingIds.has(n.id));
+        
+        if (newNotifications.length > 0) {
+          // Добавляем новые уведомления
+          newNotifications.forEach(notification => {
+            const mappedNotification = {
+              id: notification.id,
+              title: notification.title,
+              message: notification.message,
+              type: this.mapServerTypeToClient(notification.type),
+              created_at: notification.created_at,
+              read: false
+            };
+            this.notifications.unshift(mappedNotification);
+          });
+          
+          this.updateBadge();
+          
+          // Показываем toast уведомления о новых сообщениях
+          if (window.notificationManager && newNotifications.length > 0) {
+            window.notificationManager.show(
+              `Получено ${newNotifications.length} нов${newNotifications.length === 1 ? 'ое' : 'ых'} уведомлени${newNotifications.length === 1 ? 'е' : 'й'}`,
+              'info',
+              5000
+            );
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Ошибка проверки новых уведомлений:', error);
+    }
+  }
+
+  // Переопределяем markAsRead для работы с сервером
+  async markAsRead(notificationId) {
+    const notification = this.notifications.find(n => n.id === notificationId);
+    if (!notification || notification.read) return;
+    
+    // Отмечаем локально
+    notification.read = true;
+    this.updateBadge();
+    
+    // Отмечаем на сервере
+    if (window.apiRequest) {
+      try {
+        await window.apiRequest(`/notifications/${notificationId}/read`, {
+          method: 'POST'
+        });
+      } catch (error) {
+        console.warn('Не удалось отметить уведомление как прочитанное на сервере:', error);
+      }
+    }
+    
+    // Обновляем UI
+    if (this.isModalOpen) {
+      this.renderNotifications();
+    }
+  }
+
+  // Переопределяем markAllAsRead для работы с сервером
+  async markAllAsRead() {
+    const unreadNotifications = this.notifications.filter(n => !n.read);
+    if (unreadNotifications.length === 0) return;
+    
+    // Отмечаем локально
+    unreadNotifications.forEach(notification => {
+      notification.read = true;
+    });
+    
+    this.updateBadge();
+    
+    // Отмечаем на сервере
+    if (window.apiRequest) {
+      try {
+        await window.apiRequest('/notifications/read-all', {
+          method: 'POST'
+        });
+      } catch (error) {
+        console.warn('Не удалось отметить все уведомления как прочитанные на сервере:', error);
+      }
+    }
+    
+    // Обновляем UI
+    if (this.isModalOpen) {
+      this.renderNotifications();
+    }
   }
 
   // Добавить демо уведомления для тестирования

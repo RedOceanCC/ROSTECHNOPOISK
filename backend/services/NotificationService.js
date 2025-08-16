@@ -97,6 +97,40 @@ class NotificationService {
     }
   }
   
+  // Получение количества непрочитанных уведомлений
+  static async getUnreadCount(userId) {
+    try {
+      const sql = `
+        SELECT COUNT(*) as count FROM notifications 
+        WHERE user_id = ? AND read_at IS NULL
+      `;
+      
+      const result = await database.get(sql, [userId]);
+      return result.count || 0;
+      
+    } catch (error) {
+      console.error('❌ Ошибка при получении количества непрочитанных уведомлений:', error);
+      throw error;
+    }
+  }
+  
+  // Удаление уведомления
+  static async deleteNotification(notificationId, userId) {
+    try {
+      const sql = `
+        DELETE FROM notifications 
+        WHERE id = ? AND user_id = ?
+      `;
+      
+      const result = await database.run(sql, [notificationId, userId]);
+      return result.changes > 0;
+      
+    } catch (error) {
+      console.error('❌ Ошибка при удалении уведомления:', error);
+      throw error;
+    }
+  }
+  
   // Удаление старых уведомлений
   static async cleanupOldNotifications(daysOld = 30) {
     try {

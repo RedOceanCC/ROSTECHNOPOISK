@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS rental_bids (
 CREATE TABLE IF NOT EXISTS notifications (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
-  type TEXT CHECK(type IN ('new_request', 'bid_accepted', 'bid_rejected', 'auction_closed')) NOT NULL,
+  type TEXT CHECK(type IN ('new_request', 'bid_accepted', 'bid_rejected', 'auction_closed', 'bid_won', 'bid_lost', 'auction_no_bids', 'system')) NOT NULL,
   title VARCHAR(255) NOT NULL,
   message TEXT NOT NULL,
   telegram_sent BOOLEAN DEFAULT FALSE,

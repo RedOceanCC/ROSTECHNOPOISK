@@ -53,6 +53,10 @@
                         <button class="sidebar-nav-item active" data-tab="users">Пользователи</button>
                         <button class="sidebar-nav-item" data-tab="companies">Компании</button>
                         <button class="sidebar-nav-item" data-tab="partnerships">Партнерства</button>
+                        <button class="sidebar-nav-item notification-nav-btn" data-tab="notifications">
+                            🔔 Уведомления
+                            <span class="notification-badge" id="admin-notification-badge" style="display: none;">0</span>
+                        </button>
                         <button class="sidebar-nav-item logout-btn">Выйти</button>
                     </nav>
                 </aside>
@@ -137,6 +141,31 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Вкладка Уведомления -->
+                    <div id="notifications-tab" class="tab-content">
+                        <div class="dashboard-header">
+                            <h2>Уведомления</h2>
+                            <p class="text-secondary">Просматривайте и управляйте уведомлениями системы</p>
+                        </div>
+                        
+                        <div class="notifications-container">
+                            <div class="notifications-controls">
+                                <button class="btn btn--primary" id="test-notification-btn">
+                                    Создать тестовое уведомление
+                                </button>
+                                <button class="btn btn--secondary" id="mark-all-read-btn">
+                                    Отметить все как прочитанные
+                                </button>
+                            </div>
+                            
+                            <div class="notifications-list" id="notifications-list">
+                                <div class="loading-spinner" id="notifications-loading">
+                                    Загрузка уведомлений...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </main>
             </div>
         </div>
@@ -158,6 +187,10 @@
                     <nav class="sidebar-nav">
                         <button class="sidebar-nav-item active" data-tab="equipment">Моя техника</button>
                         <button class="sidebar-nav-item" data-tab="orders">Мои заявки</button>
+                        <button class="sidebar-nav-item notification-nav-btn" data-tab="notifications">
+                            🔔 Уведомления
+                            <span class="notification-badge" id="owner-notification-badge" style="display: none;">0</span>
+                        </button>
                         <button class="sidebar-nav-item logout-btn">Выйти</button>
                     </nav>
                 </aside>
@@ -198,6 +231,10 @@
                     <nav class="sidebar-nav">
                         <button class="sidebar-nav-item active" data-tab="create-order">Создать заявку</button>
                         <button class="sidebar-nav-item" data-tab="my-orders">Мои заявки</button>
+                        <button class="sidebar-nav-item notification-nav-btn" data-tab="notifications">
+                            🔔 Уведомления
+                            <span class="notification-badge" id="manager-notification-badge" style="display: none;">0</span>
+                        </button>
                         <button class="sidebar-nav-item logout-btn">Выйти</button>
                     </nav>
                 </aside>

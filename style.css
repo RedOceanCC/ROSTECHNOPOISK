@@ -1467,6 +1467,167 @@ body {
   }
 }
 
+/* Стили для системы уведомлений */
+.notification-nav-btn {
+  position: relative;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #dc3545;
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.notifications-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.notifications-controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.notifications-list {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.notification-item {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e9ecef;
+  transition: background-color 0.2s ease;
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+.notification-item.unread {
+  background: #f8f9fa;
+  border-left: 4px solid #007bff;
+}
+
+.notification-item.read {
+  background: white;
+  opacity: 0.8;
+}
+
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.notification-type {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.notification-type.request {
+  color: #28a745;
+}
+
+.notification-type.auction {
+  color: #ffc107;
+}
+
+.notification-type.system {
+  color: #6c757d;
+}
+
+.notification-time {
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+.notification-content {
+  margin-bottom: 1rem;
+}
+
+.notification-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #343a40;
+}
+
+.notification-message {
+  margin: 0;
+  color: #6c757d;
+  line-height: 1.5;
+}
+
+.notification-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.mark-read-btn {
+  font-size: 0.875rem !important;
+  padding: 0.375rem 0.75rem !important;
+}
+
+.empty-state,
+.error-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #6c757d;
+}
+
+.empty-icon,
+.error-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.empty-state h3,
+.error-state h3 {
+  margin: 0 0 0.5rem 0;
+  color: #343a40;
+}
+
+.loading-spinner {
+  text-align: center;
+  padding: 2rem;
+  color: #6c757d;
+}
+
+/* Адаптивность для уведомлений */
+@media (max-width: 768px) {
+  .notifications-controls {
+    flex-direction: column;
+  }
+  
+  .notification-item {
+    padding: 1rem;
+  }
+  
+  .notification-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
 /* Модальное окно уведомлений */
 .notifications-modal-content {
   width: 600px;

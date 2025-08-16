@@ -1908,11 +1908,191 @@ function formatBidsCount(count) {
   }
 }
 
+// Инициализация системы уведомлений
+function initializeNotifications() {
+  // Обработчик кнопки тестового уведомления
+  const testNotificationBtn = document.getElementById('test-notification-btn');
+  if (testNotificationBtn) {
+    testNotificationBtn.addEventListener('click', async () => {
+      try {
+        const response = await apiRequest('/notifications/test', {
+          method: 'POST'
+        });
+
+        if (response.success && window.notificationManager) {
+          window.notificationManager.show('Тестовое уведомление создано и отправлено!', 'success');
+          
+          // Обновляем список уведомлений
+          if (window.notificationCenter) {
+            setTimeout(() => {
+              window.notificationCenter.loadNotifications();
+            }, 1000);
+          }
+        }
+      } catch (error) {
+        console.error('Ошибка создания тестового уведомления:', error);
+        if (window.notificationManager) {
+          window.notificationManager.show('Ошибка создания уведомления: ' + error.message, 'error');
+        }
+      }
+    });
+  }
+
+  // Обработчик кнопки "отметить все как прочитанные"
+  const markAllReadBtn = document.getElementById('mark-all-read-btn');
+  if (markAllReadBtn) {
+    markAllReadBtn.addEventListener('click', async () => {
+      if (window.notificationCenter) {
+        await window.notificationCenter.markAllAsRead();
+        if (window.notificationManager) {
+          window.notificationManager.show('Все уведомления отмечены как прочитанные', 'success');
+        }
+      }
+    });
+  }
+
+  // Обработчики переключения на вкладку уведомлений
+  document.addEventListener('click', (e) => {
+    if (e.target.matches('[data-tab="notifications"]')) {
+      e.preventDefault();
+      showTab('notifications');
+      
+      // Загружаем уведомления при открытии вкладки
+      if (window.notificationCenter) {
+        renderNotificationsList();
+      }
+    }
+  });
+}
+
+// Отображение списка уведомлений в интерфейсе
+async function renderNotificationsList() {
+  const notificationsList = document.getElementById('notifications-list');
+  const loading = document.getElementById('notifications-loading');
+  
+  if (!notificationsList || !window.notificationCenter) return;
+  
+  try {
+    // Показываем загрузку
+    if (loading) loading.style.display = 'block';
+    
+    // Загружаем уведомления с сервера
+    await window.notificationCenter.loadNotifications();
+    
+    const notifications = window.notificationCenter.notifications;
+    
+    // Скрываем загрузку
+    if (loading) loading.style.display = 'none';
+    
+    if (notifications.length === 0) {
+      notificationsList.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">🔔</div>
+          <h3>Нет уведомлений</h3>
+          <p>У вас пока нет уведомлений</p>
+        </div>
+      `;
+      return;
+    }
+    
+    // Отображаем уведомления
+    notificationsList.innerHTML = notifications.map(notification => `
+      <div class="notification-item ${notification.read ? 'read' : 'unread'}" data-id="${notification.id}">
+        <div class="notification-header">
+          <div class="notification-type ${notification.type}">${getNotificationTypeIcon(notification.type)}</div>
+          <div class="notification-time">${formatTimeAgo(notification.created_at)}</div>
+        </div>
+        <div class="notification-content">
+          <h4 class="notification-title">${notification.title}</h4>
+          <p class="notification-message">${notification.message}</p>
+        </div>
+        <div class="notification-actions">
+          ${!notification.read ? `
+            <button class="btn btn--small btn--secondary mark-read-btn" data-id="${notification.id}">
+              Отметить как прочитанное
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    `).join('');
+    
+    // Добавляем обработчики для кнопок
+    notificationsList.addEventListener('click', handleNotificationAction);
+    
+  } catch (error) {
+    console.error('Ошибка загрузки уведомлений:', error);
+    
+    if (loading) loading.style.display = 'none';
+    
+    notificationsList.innerHTML = `
+      <div class="error-state">
+        <div class="error-icon">⚠️</div>
+        <h3>Ошибка загрузки</h3>
+        <p>Не удалось загрузить уведомления: ${error.message}</p>
+        <button class="btn btn--primary" onclick="renderNotificationsList()">Повторить</button>
+      </div>
+    `;
+  }
+}
+
+// Обработчик действий с уведомлениями
+async function handleNotificationAction(e) {
+  if (e.target.matches('.mark-read-btn')) {
+    const notificationId = e.target.dataset.id;
+    
+    if (window.notificationCenter) {
+      await window.notificationCenter.markAsRead(notificationId);
+      
+      // Обновляем отображение
+      const notificationItem = e.target.closest('.notification-item');
+      if (notificationItem) {
+        notificationItem.classList.remove('unread');
+        notificationItem.classList.add('read');
+        e.target.remove(); // Убираем кнопку
+      }
+      
+      if (window.notificationManager) {
+        window.notificationManager.show('Уведомление отмечено как прочитанное', 'success');
+      }
+    }
+  }
+}
+
+// Получить иконку для типа уведомления
+function getNotificationTypeIcon(type) {
+  const icons = {
+    'request': '📋',
+    'auction': '💰', 
+    'system': '⚙️'
+  };
+  return icons[type] || '📢';
+}
+
+// Форматирование времени "назад"
+function formatTimeAgo(dateString) {
+  const now = new Date();
+  const date = new Date(dateString);
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 1) return 'только что';
+  if (diffMins < 60) return `${diffMins} мин назад`;
+  if (diffHours < 24) return `${diffHours} ч назад`;
+  if (diffDays < 7) return `${diffDays} дн назад`;
+  
+  return date.toLocaleDateString('ru-RU');
+}
+
 // Инициализация приложения
 document.addEventListener('DOMContentLoaded', function() {
   // Показываем главную страницу
   showPage('login-page');
   
+  // Инициализация системы уведомлений
+  initializeNotifications();
+
   // Добавляем демо уведомления для тестирования (только в dev-режиме)
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     setTimeout(() => {

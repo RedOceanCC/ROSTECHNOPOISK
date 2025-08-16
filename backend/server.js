@@ -103,6 +103,7 @@ app.use('/api/companies', companyRoutes);
 app.use('/api/equipment', equipmentRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/bids', bidRoutes);
+app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/telegram', telegramRoutes);
 app.use('/api/logs', logRoutes);
 
