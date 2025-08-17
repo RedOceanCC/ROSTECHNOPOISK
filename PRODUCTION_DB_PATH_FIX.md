@@ -107,3 +107,4 @@ sudo chmod 644 /var/lib/rostechnopoisk/database/rostechnopolsk.db
 ```
 
 
+
