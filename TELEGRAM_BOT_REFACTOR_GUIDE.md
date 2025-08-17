@@ -60,14 +60,34 @@ ls -la telegram-webapp/request.html
 
 ### 3. Выполнение миграций базы данных
 
+**ВАЖНО:** Для исправления проблемы с таблицей `request_declines` используйте:
+
+#### Быстрое исправление (рекомендуется):
+```bash
+# На сервере Linux:
+bash fix-migration.sh
+
+# На Windows (для разработки):
+fix-migration.bat
+```
+
+#### Ручное выполнение миграций:
 ```bash
 cd backend
 
-# Выполните миграции (автоматически применятся при запуске сервера)
-# Или выполните вручную:
-sqlite3 database/ростехнопоиск.db < database/migrations/20250120180000_add_new_bid_notification_type.sql
-sqlite3 database/ростехнопоиск.db < database/migrations/20250120180100_create_request_declines_table.sql
+# Проверьте статус миграций
+node database/migrate.js status
+
+# Выполните миграции
+node database/migrate.js
+
+# Или выполните напрямую:
+sqlite3 database/rostechnopolsk.db < database/migrations/20250120180000_add_new_bid_notification_type.sql
+sqlite3 database/rostechnopolsk.db < database/migrations/20250120180100_create_request_declines_table.sql
+sqlite3 database/rostechnopolsk.db < database/migrations/20250120180200_create_request_declines_indexes.sql
 ```
+
+**📖 Подробное руководство:** См. `DATABASE_MIGRATION_GUIDE.md`
 
 ### 4. Проверка конфигурации
 
