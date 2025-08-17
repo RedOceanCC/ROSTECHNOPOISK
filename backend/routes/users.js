@@ -109,7 +109,7 @@ router.post('/',
 router.put('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, phone, telegram_id, company_id, status } = req.body;
+    const { name, phone, telegram_id, company_id, status, role, password } = req.body;
     
     // Проверяем права доступа
     if (req.user.role !== 'admin' && req.user.id !== parseInt(id)) {
@@ -119,12 +119,18 @@ router.put('/:id', async (req, res, next) => {
       });
     }
     
-    // Обычные пользователи не могут изменять статус и компанию
+    // Обычные пользователи не могут изменять статус, компанию и роль
     const updateData = { name, phone, telegram_id };
     
     if (req.user.role === 'admin') {
       updateData.company_id = company_id;
       updateData.status = status;
+      updateData.role = role;
+      
+      // Если передан пароль, обновляем его
+      if (password && password.trim()) {
+        updateData.password = password;
+      }
     }
     
     const user = await User.update(id, updateData);

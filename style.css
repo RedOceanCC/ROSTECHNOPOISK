@@ -1040,6 +1040,21 @@ body {
   display: none !important;
 }
 
+/* Подсказки в формах */
+.form-text {
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.form-text.text-muted {
+  color: #6c757d;
+}
+
+.text-muted {
+  color: #6c757d;
+}
+
 /* Dashboard layout */
 .dashboard-layout {
   display: flex;

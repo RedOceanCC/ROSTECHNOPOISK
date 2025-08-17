@@ -75,6 +75,7 @@
                                         <th>Имя</th>
                                         <th>Роль</th>
                                         <th>Компания</th>
+                                        <th>Telegram ID</th>
                                         <th>Действия</th>
                                     </tr>
                                 </thead>
@@ -362,6 +363,13 @@
                         <input type="tel" id="new-user-phone" class="form-control" placeholder="+7 (999) 123-45-67">
                     </div>
                     <div class="form-group">
+                        <label class="form-label">Telegram ID</label>
+                        <input type="text" id="new-user-telegram-id" class="form-control" placeholder="123456789">
+                        <small class="form-text text-muted">
+                            Для получения ID отправьте любое сообщение боту @userinfobot
+                        </small>
+                    </div>
+                    <div class="form-group">
                         <label class="form-label">Роль</label>
                         <select id="new-user-role" class="form-control" required>
                             <option value="">Выберите роль</option>
@@ -384,6 +392,59 @@
                     <div class="modal-actions">
                         <button type="button" class="btn btn--secondary modal-cancel">Отмена</button>
                         <button type="submit" class="btn btn--primary">Создать</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Модальное окно редактирования пользователя -->
+        <div id="edit-user-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content card">
+                <div class="modal-header">
+                    <h3>Редактировать пользователя</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <form id="edit-user-form" class="modal-body">
+                    <input type="hidden" id="edit-user-id">
+                    <div class="form-group">
+                        <label class="form-label">Имя пользователя</label>
+                        <input type="text" id="edit-user-name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Телефон</label>
+                        <input type="tel" id="edit-user-phone" class="form-control" placeholder="+7 (999) 123-45-67">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Telegram ID</label>
+                        <input type="text" id="edit-user-telegram-id" class="form-control" placeholder="123456789">
+                        <small class="form-text text-muted">
+                            Для получения ID отправьте любое сообщение боту @userinfobot
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Роль</label>
+                        <select id="edit-user-role" class="form-control" required>
+                            <option value="">Выберите роль</option>
+                            <option value="admin">Администратор</option>
+                            <option value="owner">Владелец техники</option>
+                            <option value="manager">Менеджер</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Компания</label>
+                        <select id="edit-user-company" class="form-control" required>
+                            <option value="">Выберите компанию</option>
+                            <!-- Будет заполнено динамически -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Новый пароль (оставьте пустым если не меняете)</label>
+                        <input type="password" id="edit-user-password" class="form-control">
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn--secondary modal-cancel">Отмена</button>
+                        <button type="submit" class="btn btn--primary">Сохранить</button>
                     </div>
                 </form>
             </div>

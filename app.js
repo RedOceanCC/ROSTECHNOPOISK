@@ -131,6 +131,33 @@ window.editEquipment = function(equipmentId) {
   alert('Функция редактирования будет добавлена в следующих версиях');
 };
 
+window.editUser = async function(userId) {
+  try {
+    // Получаем данные пользователя
+    const response = await apiRequest(`/users/${userId}`);
+    if (!response.success) {
+      throw new Error(response.message);
+    }
+    
+    const user = response.user;
+    
+    // Заполняем форму
+    document.getElementById('edit-user-id').value = user.id;
+    document.getElementById('edit-user-name').value = user.name;
+    document.getElementById('edit-user-phone').value = user.phone || '';
+    document.getElementById('edit-user-telegram-id').value = user.telegram_id || '';
+    document.getElementById('edit-user-role').value = user.role;
+    document.getElementById('edit-user-company').value = user.company_id || '';
+    document.getElementById('edit-user-password').value = '';
+    
+    // Загружаем список компаний и открываем модал
+    await populateEditCompaniesSelect();
+    showModal('edit-user-modal');
+  } catch (error) {
+    alert('Ошибка при загрузке данных пользователя: ' + error.message);
+  }
+};
+
 window.deleteCompany = async function(companyId) {
   if (confirm('Вы уверены, что хотите удалить эту компанию? Это действие нельзя отменить.')) {
     try {
@@ -336,6 +363,7 @@ async function initAdminDashboard() {
   // Рендерим только активную вкладку (Пользователи)
   await renderUsersTable();
   setupCreateUserModal();
+  setupEditUserModal();
   setupCreateCompanyModal();
 
   // Запускаем автообновление
@@ -346,31 +374,35 @@ async function initAdminDashboard() {
 
 async function renderUsersTable() {
   const tbody = document.getElementById('users-table-body');
-  tbody.innerHTML = '<tr><td colspan="5">Загрузка...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6">Загрузка...</td></tr>';
   
   try {
     const response = await apiRequest('/users');
     if (response.success) {
-  tbody.innerHTML = '';
-  
+      tbody.innerHTML = '';
+      
       response.users.forEach(user => {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${user.id}</td>
-      <td>${user.name}</td>
-      <td>${getRoleLabel(user.role)}</td>
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${user.id}</td>
+          <td>${user.name}</td>
+          <td>${getRoleLabel(user.role)}</td>
           <td>${user.company_name || 'Не назначена'}</td>
-      <td>
+          <td>${user.telegram_id || '<span class="text-muted">Не указан</span>'}</td>
+          <td>
+            <button class="btn btn--secondary btn--small" onclick="editUser(${user.id})" style="margin-right: 8px;">
+              Редактировать
+            </button>
             <button class="btn btn--danger btn--small" onclick="deleteUser(${user.id})">
-          Удалить
-        </button>
-      </td>
-    `;
-    tbody.appendChild(row);
-  });
+              Удалить
+            </button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
     }
   } catch (error) {
-    tbody.innerHTML = `<tr><td colspan="5">Ошибка загрузки: ${error.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6">Ошибка загрузки: ${error.message}</td></tr>`;
   }
 }
 
@@ -404,6 +436,7 @@ function setupCreateUserModal() {
     const newUser = {
       name: document.getElementById('new-user-name').value,
       phone: document.getElementById('new-user-phone').value,
+      telegram_id: document.getElementById('new-user-telegram-id').value || null,
       role: document.getElementById('new-user-role').value,
       company_id: parseInt(document.getElementById('new-user-company').value) || null,
       password: document.getElementById('new-user-password').value
@@ -421,6 +454,48 @@ function setupCreateUserModal() {
       alert('Пользователь создан успешно');
     } catch (error) {
       alert('Ошибка при создании пользователя: ' + error.message);
+    }
+  };
+}
+
+// Настройка модального окна редактирования пользователя
+function setupEditUserModal() {
+  const modal = document.getElementById('edit-user-modal');
+  const form = document.getElementById('edit-user-form');
+  
+  modal.querySelector('.modal-close').onclick = () => hideModal('edit-user-modal');
+  modal.querySelector('.modal-cancel').onclick = () => hideModal('edit-user-modal');
+  modal.querySelector('.modal-backdrop').onclick = () => hideModal('edit-user-modal');
+  
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    
+    const userId = document.getElementById('edit-user-id').value;
+    const userData = {
+      name: document.getElementById('edit-user-name').value,
+      phone: document.getElementById('edit-user-phone').value || null,
+      telegram_id: document.getElementById('edit-user-telegram-id').value || null,
+      role: document.getElementById('edit-user-role').value,
+      company_id: parseInt(document.getElementById('edit-user-company').value) || null
+    };
+    
+    const password = document.getElementById('edit-user-password').value;
+    if (password) {
+      userData.password = password;
+    }
+    
+    try {
+      await apiRequest(`/users/${userId}`, {
+        method: 'PUT',
+        body: JSON.stringify(userData)
+      });
+      
+      await renderUsersTable();
+      hideModal('edit-user-modal');
+      form.reset();
+      alert('Пользователь обновлен успешно');
+    } catch (error) {
+      alert('Ошибка при обновлении пользователя: ' + error.message);
     }
   };
 }
@@ -463,6 +538,45 @@ async function populateCompaniesSelect() {
     }
   } catch (error) {
     console.error('Ошибка загрузки компаний:', error);
+    select.innerHTML = '<option value="">Ошибка загрузки компаний</option>';
+  }
+}
+
+// Заполнение списка компаний в форме редактирования пользователя
+async function populateEditCompaniesSelect() {
+  const select = document.getElementById('edit-user-company');
+  
+  if (!select) {
+    console.error('Селект компаний для редактирования не найден!');
+    return;
+  }
+  
+  try {
+    const response = await apiRequest('/companies');
+    
+    if (response.success && response.companies) {
+      // Сохраняем текущее значение
+      const currentValue = select.value;
+      
+      // Очищаем и заполняем опции
+      select.innerHTML = '<option value="">Выберите компанию</option>';
+      
+      response.companies.forEach(company => {
+        if (company.status === 'active') {
+          const option = document.createElement('option');
+          option.value = company.id;
+          option.textContent = company.name;
+          select.appendChild(option);
+        }
+      });
+      
+      // Восстанавливаем значение
+      select.value = currentValue;
+    } else {
+      select.innerHTML = '<option value="">Ошибка загрузки компаний</option>';
+    }
+  } catch (error) {
+    console.error('Ошибка при загрузке компаний:', error);
     select.innerHTML = '<option value="">Ошибка загрузки компаний</option>';
   }
 }
@@ -1518,11 +1632,12 @@ async function renderManagerOrders() {
     
         let statusText = '';
         let statusClass = '';
+        let bidsInfo = null; // Объявляем переменную вне switch
         
         switch (order.status) {
           case 'auction_active':
             const bidsCount = order.bids_count || 0;
-            const bidsInfo = formatBidsCount(bidsCount);
+            bidsInfo = formatBidsCount(bidsCount);
             statusText = `Аукцион активен`;
             statusClass = 'pending';
             break;
@@ -1590,7 +1705,7 @@ async function renderManagerOrders() {
         <span class="badge badge--${statusClass}">
           ${statusText}
         </span>
-        ${order.status === 'auction_active' ? 
+        ${order.status === 'auction_active' && bidsInfo ? 
           `<span class="badge badge--info bids-counter ${bidsInfo.class}">
             ${bidsInfo.icon} ${bidsInfo.text}
           </span>` : ''
@@ -1603,17 +1718,15 @@ async function renderManagerOrders() {
     // Запускаем таймер для активных аукционов
     if (deadline && order.status === 'auction_active') {
       const status = auctionTimer.getAuctionStatus(deadline);
-      auctionTimer.createTimer(timerId, deadline, {
-        prefix: '⏰',
-        activeClass: `auction-timer ${status.class}`,
-        urgentClass: 'auction-timer urgent',
-        expiredClass: 'auction-timer expired',
-        expiredText: '⏱️ Аукцион завершен',
-        onExpired: () => {
-          // Перерендерим карточки при завершении аукциона
-          setTimeout(() => renderManagerOrders(), 2000);
-        }
-      });
+              auctionTimer.createTimer(timerId, deadline, {
+          prefix: '⏰',
+          activeClass: `auction-timer ${status.class}`,
+          urgentClass: 'auction-timer urgent',
+          expiredClass: 'auction-timer expired',
+          expiredText: '⏱️ Аукцион завершен'
+          // Убираем onExpired чтобы избежать рекурсивных вызовов
+          // Автообновление будет обрабатывать завершенные аукционы
+        });
     }
   });
     }
@@ -1785,13 +1898,13 @@ class RealTimeUpdater {
 
   // Автообновление для менеджеров
   startManagerUpdates() {
-    // Обновляем заявки каждые 15 секунд и проверяем завершенные аукционы
+    // Обновляем заявки каждые 30 секунд (оптимизировано) и проверяем завершенные аукционы
     const ordersInterval = setInterval(async () => {
       if (this.isActive && document.getElementById('my-orders-tab')?.classList.contains('active')) {
-        await this.checkForCompletedAuctions();
-        renderManagerOrders();
+        // Объединяем проверку и рендеринг в один запрос
+        await this.updateManagerOrdersWithNotifications();
       }
-    }, 15000);
+    }, 30000); // Увеличено с 15 до 30 секунд
     this.intervals.set('manager-orders', ordersInterval);
   }
 
@@ -1872,6 +1985,167 @@ class RealTimeUpdater {
     } catch (error) {
       console.error('Ошибка проверки завершенных аукционов:', error);
     }
+  }
+
+  // Оптимизированный метод для менеджеров - один запрос вместо двух
+  async updateManagerOrdersWithNotifications() {
+    if (!this.lastAuctionCheck) {
+      this.lastAuctionCheck = new Date();
+    }
+
+    try {
+      const response = await apiRequest('/requests');
+      if (response.success) {
+        // Проверяем завершенные аукционы для уведомлений
+        const completedAuctions = response.requests.filter(order => {
+          return order.status === 'auction_closed' && 
+                 order.winning_owner_name &&
+                 new Date(order.auction_deadline) > this.lastAuctionCheck;
+        });
+
+        completedAuctions.forEach(order => {
+          if (window.notificationCenter) {
+            window.notificationCenter.addNotification({
+              title: '🏆 Аукцион завершен!',
+              message: `Заявка "${order.equipment_type} - ${order.equipment_subtype}" завершена. Победитель: ${order.winning_owner_name}. Цена: ${order.winning_price?.toLocaleString() || 'Не указана'} ₽`,
+              type: 'auction',
+              auctionId: order.id,
+              requestId: order.id
+            });
+          }
+        });
+
+        this.lastAuctionCheck = new Date();
+        
+        // Рендерим заявки (используем уже полученные данные)
+        this.renderManagerOrdersFromData(response.requests);
+      }
+    } catch (error) {
+      console.error('Ошибка обновления заявок менеджера:', error);
+    }
+  }
+
+  // Рендеринг заявок из уже полученных данных
+  renderManagerOrdersFromData(userOrders) {
+    const grid = document.getElementById('manager-orders-grid');
+    if (!grid) return;
+
+    if (userOrders.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-state">
+          <h3>Заявки не созданы</h3>
+          <p>Создайте заявку на технику, и владельцы смогут откликнуться на неё</p>
+        </div>
+      `;
+      return;
+    }
+
+    grid.innerHTML = '';
+    // Используем существующую логику рендеринга из renderManagerOrders
+    // но без нового API запроса
+    userOrders.forEach(order => {
+      // Копируем логику из renderManagerOrders (строки 1629-1732)
+      const card = document.createElement('div');
+      card.className = 'order-card';
+      
+      let statusText = '';
+      let statusClass = '';
+      let bidsInfo = null;
+      
+      switch (order.status) {
+        case 'auction_active':
+          const bidsCount = order.bids_count || 0;
+          bidsInfo = formatBidsCount(bidsCount);
+          statusText = `Аукцион активен`;
+          statusClass = 'pending';
+          break;
+        case 'auction_closed':
+          statusText = 'Аукцион завершен';
+          statusClass = 'available';
+          break;
+        case 'completed':
+          statusText = 'Завершена';
+          statusClass = 'busy';
+          break;
+        case 'cancelled':
+          statusText = 'Отменена';
+          statusClass = 'busy';
+          break;
+        default:
+          statusText = 'Ожидает';
+          statusClass = 'pending';
+      }
+      
+      const deadline = order.auction_deadline;
+      const timerId = `manager-timer-${order.id}`;
+      
+      let winnerInfo = '';
+      if (order.status === 'auction_closed' && order.winning_owner_name) {
+        winnerInfo = `
+          <div class="winner-card">
+            <div class="winner-header">
+              <span class="winner-icon">🏆</span>
+              <h4>Победитель аукциона</h4>
+            </div>
+            <div class="winner-details">
+              <div class="winner-contact">
+                <p><strong>👤 ${order.winning_owner_name}</strong></p>
+                <p>📞 <a href="tel:${order.winning_owner_phone}">${order.winning_owner_phone}</a></p>
+              </div>
+              <div class="winner-price">
+                <span class="price-label">Цена:</span>
+                <span class="price-value">${order.winning_price ? order.winning_price.toLocaleString() + ' ₽' : 'Не указана'}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (order.status === 'auction_closed') {
+        winnerInfo = `
+          <div class="no-winner-card">
+            <p>❌ Аукцион завершен без победителя</p>
+          </div>
+        `;
+      }
+
+      card.innerHTML = `
+        <h3>${order.equipment_type} - ${order.equipment_subtype}</h3>
+        <div class="order-info">
+          <p><strong>Период:</strong> ${formatDate(order.start_date)} - ${formatDate(order.end_date)}</p>
+          <p><strong>Местоположение:</strong> ${order.location}</p>
+          <p><strong>Описание:</strong> ${order.work_description}</p>
+          <p><strong>Создана:</strong> ${formatDate(order.created_at)}</p>
+          ${deadline && order.status === 'auction_active' ? 
+            `<p><strong>До окончания:</strong> <span id="${timerId}" class="auction-timer">Загрузка...</span></p>` : 
+            deadline ? `<p><strong>Завершен:</strong> ${new Date(deadline).toLocaleString()}</p>` : ''
+          }
+        </div>
+        <div class="order-badges">
+          <span class="badge badge--${statusClass}">
+            ${statusText}
+          </span>
+          ${order.status === 'auction_active' && bidsInfo ? 
+            `<span class="badge badge--info bids-counter ${bidsInfo.class}">
+              ${bidsInfo.icon} ${bidsInfo.text}
+            </span>` : ''
+          }
+        </div>
+        ${winnerInfo}
+      `;
+      grid.appendChild(card);
+
+      // Запускаем таймер для активных аукционов (без рекурсивного вызова)
+      if (deadline && order.status === 'auction_active') {
+        const status = auctionTimer.getAuctionStatus(deadline);
+        auctionTimer.createTimer(timerId, deadline, {
+          prefix: '⏰',
+          activeClass: `auction-timer ${status.class}`,
+          urgentClass: 'auction-timer urgent',
+          expiredClass: 'auction-timer expired',
+          expiredText: '⏱️ Аукцион завершен'
+          // Убираем onExpired чтобы избежать рекурсивных вызовов
+        });
+      }
+    });
   }
 }
 
