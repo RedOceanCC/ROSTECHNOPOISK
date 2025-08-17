@@ -22,8 +22,42 @@ class TelegramWebApp {
       return;
     }
 
-    this.bot = new TelegramBot(token, { polling: true });
-    this.setupBotHandlers();
+    try {
+      this.bot = new TelegramBot(token, { 
+        polling: {
+          interval: 2000,    // Увеличиваем интервал polling
+          autoStart: true,
+          params: {
+            timeout: 10
+          }
+        }
+      });
+      
+      // Обработка ошибок polling
+      this.bot.on('polling_error', (error) => {
+        if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
+          console.log('⚠️  Обнаружен конфликт множественных экземпляров бота - останавливаем polling');
+          this.bot.stopPolling();
+          
+          // Пытаемся перезапустить через 30 секунд
+          setTimeout(() => {
+            console.log('🔄 Пытаемся перезапустить бота...');
+            try {
+              this.bot.startPolling();
+            } catch (restartError) {
+              console.error('❌ Не удалось перезапустить бота:', restartError.message);
+            }
+          }, 30000);
+        } else {
+          console.error('❌ Ошибка Telegram бота:', error.message);
+        }
+      });
+      
+      this.setupBotHandlers();
+      console.log('✅ Telegram бот инициализирован с обработкой конфликтов');
+    } catch (error) {
+      console.error('❌ Критическая ошибка инициализации бота:', error.message);
+    }
   }
 
   setupBotHandlers() {

@@ -168,6 +168,11 @@ app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/telegram', telegramRoutes);
 app.use('/api/logs', logRoutes);
 
+// Telegram WebApp роуты (должны быть объявлены ДО fallback роута)
+if (process.env.TELEGRAM_BOT_TOKEN && TelegramWebApp) {
+  TelegramWebApp.setupRoutes(app);
+  console.log('📡 Telegram WebApp роуты подключены');
+}
 
 // Роут для проверки здоровья сервера
 app.get('/api/health', (req, res) => {
@@ -211,9 +216,30 @@ app.get('/telegram/debug', (req, res) => {
 
 // Обслуживание фронтенда в продакшене
 if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
-  });
+  const frontendIndexPath = path.join(__dirname, '../frontend/build/index.html');
+  
+  // Проверяем существование frontend/build/index.html
+  if (fs.existsSync(frontendIndexPath)) {
+    console.log('✅ Frontend build найден:', frontendIndexPath);
+    
+    // Fallback роут только для не-API запросов
+    app.get(/^\/(?!api\/).+/, (req, res) => {
+      res.sendFile(frontendIndexPath);
+    });
+  } else {
+    console.log('❌ Frontend build НЕ найден:', frontendIndexPath);
+    console.log('⚠️  Fallback роут отключен - фронтенд не собран');
+    
+    // Создаем альтернативный роут для корня
+    app.get('/', (req, res) => {
+      res.json({
+        success: true,
+        message: 'РОСТЕХНОПОИСК API сервер работает',
+        note: 'Frontend не собран, используйте API напрямую',
+        api_docs: '/api/health'
+      });
+    });
+  }
 }
 
 // Обработка 404
@@ -253,9 +279,6 @@ async function startServer() {
     // Инициализируем Telegram бота если токен установлен
     if (process.env.TELEGRAM_BOT_TOKEN && TelegramWebApp) {
       telegramBot = new TelegramWebApp();
-      
-      // Добавляем роуты Telegram WebApp
-      TelegramWebApp.setupRoutes(app);
       
       logger.info('Telegram бот инициализирован');
       console.log('🤖 Telegram бот запущен');
@@ -339,4 +362,29 @@ process.on('uncaughtException', (error) => {
 });
 
 // Запускаем сервер
+// Graceful shutdown для предотвращения множественных экземпляров бота
+process.on('SIGINT', () => {
+  console.log('\n⏹️  Получен сигнал SIGINT, корректно завершаем работу...');
+  
+  if (telegramBot && telegramBot.bot) {
+    console.log('🤖 Останавливаем Telegram бота...');
+    telegramBot.bot.stopPolling();
+  }
+  
+  logger.info('Сервер завершает работу');
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.log('\n⏹️  Получен сигнал SIGTERM, корректно завершаем работу...');
+  
+  if (telegramBot && telegramBot.bot) {
+    console.log('🤖 Останавливаем Telegram бота...');
+    telegramBot.bot.stopPolling();
+  }
+  
+  logger.info('Сервер завершает работу');
+  process.exit(0);
+});
+
 startServer();
