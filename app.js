@@ -33,7 +33,12 @@ async function apiRequest(endpoint, options = {}) {
     if (!contentType || !contentType.includes('application/json')) {
       const text = await response.text();
       console.error('❌ Сервер вернул не JSON:', text);
-      throw new Error(`Сервер вернул ${response.status}: ${text.substring(0, 200)}`);
+      return {
+        success: false,
+        status: response.status,
+        message: `Сервер вернул ${response.status}: ${text.substring(0, 200)}`,
+        error: 'INVALID_RESPONSE_TYPE'
+      };
     }
     
     const data = await response.json();
@@ -55,7 +60,15 @@ async function apiRequest(endpoint, options = {}) {
     console.error('❌ API Error:', error);
     console.error('❌ URL:', url);
     console.error('❌ Config:', config);
-    throw error;
+    
+    // Возвращаем объект ошибки вместо броска исключения
+    return {
+      success: false,
+      status: 0,
+      message: error.message || 'Ошибка сети или сервера',
+      error: 'NETWORK_ERROR',
+      originalError: error
+    };
   }
 }
 
@@ -214,178 +227,167 @@ window.editCompany = function(companyId) {
 
 // Функция показа результатов аукциона
 window.showAuctionResults = async function(requestId) {
-  try {
-    console.log(`🔍 Загружаем результаты аукциона #${requestId}...`);
+  console.log(`🔍 Загружаем результаты аукциона #${requestId}...`);
+  
+  const response = await apiRequest(`/requests/${requestId}/results`);
+  console.log('📋 Ответ API:', response);
+  
+  if (!response.success) {
+    console.warn(`⚠️ Аукцион не завершен: ${response.message}`);
     
-    const response = await apiRequest(`/requests/${requestId}/results`);
-    console.log('📋 Ответ API:', response);
-    
-    if (!response.success) {
-      console.warn(`⚠️ Аукцион не завершен: ${response.message}`);
+    // Если аукцион еще не закрыт, попробуем его закрыть принудительно
+    if (response.message && response.message.includes('не завершен')) {
+      console.log('🔄 Пытаемся принудительно закрыть аукцион...');
       
-      // Если аукцион еще не закрыт, попробуем его закрыть принудительно
-      if (response.message && response.message.includes('не завершен')) {
-        console.log('🔄 Пытаемся принудительно закрыть аукцион...');
-        
-        const closeResponse = await apiRequest(`/requests/${requestId}/close-auction`, {
-          method: 'POST'
-        });
-        
-        console.log('📋 Результат закрытия:', closeResponse);
-        
-        if (closeResponse.success) {
-          alert('Аукцион закрыт. Обновите страницу для просмотра результатов.');
-          return;
+      const closeResponse = await apiRequest(`/requests/${requestId}/close-auction`, {
+        method: 'POST'
+      });
+      
+      console.log('📋 Результат закрытия:', closeResponse);
+      
+      if (closeResponse.success) {
+        alert('Аукцион закрыт. Обновите страницу для просмотра результатов.');
+        return;
+      } else {
+        // Специальная обработка для разных ошибок
+        if (closeResponse.status === 403) {
+          alert('❌ У вас нет прав для закрытия аукциона. Обратитесь к администратору.');
         } else {
           alert('❌ Не удалось закрыть аукцион: ' + (closeResponse.message || 'Неизвестная ошибка'));
-          return;
         }
+        return;
       }
-      
-      alert('Ошибка загрузки результатов аукциона: ' + (response.message || 'Неизвестная ошибка'));
-      return;
     }
-
-    const { request, winner, statistics } = response;
     
-    const modal = document.getElementById('auction-results-modal');
-    if (!modal) {
-      console.error('Модальное окно результатов аукциона не найдено');
-      return;
-    }
+    alert('Ошибка загрузки результатов аукциона: ' + (response.message || 'Неизвестная ошибка'));
+    return;
+  }
 
-    const content = document.getElementById('auction-results-content');
-    
-    let resultsHTML = `
-      <div class="auction-results-header">
-        <h3>🏁 Результаты аукциона</h3>
-        <div class="auction-info">
-          <h4>${request.equipment_type} - ${request.equipment_subtype}</h4>
-          <p><strong>Местоположение:</strong> ${request.location}</p>
-          <p><strong>Период:</strong> ${formatDate(request.start_date)} - ${formatDate(request.end_date)}</p>
-          <p><strong>Завершен:</strong> ${new Date(request.auction_deadline).toLocaleString()}</p>
+  const { request, winner, statistics } = response;
+  
+  const modal = document.getElementById('auction-results-modal');
+  if (!modal) {
+    console.error('Модальное окно результатов аукциона не найдено');
+    return;
+  }
+
+  const content = document.getElementById('auction-results-content');
+  
+  let resultsHTML = `
+    <div class="auction-results-header">
+      <h3>🏁 Результаты аукциона</h3>
+      <div class="auction-info">
+        <h4>${request.equipment_type} - ${request.equipment_subtype}</h4>
+        <p><strong>Местоположение:</strong> ${request.location}</p>
+        <p><strong>Период:</strong> ${formatDate(request.start_date)} - ${formatDate(request.end_date)}</p>
+        <p><strong>Завершен:</strong> ${new Date(request.auction_deadline).toLocaleString()}</p>
+      </div>
+    </div>
+  `;
+
+  if (winner) {
+    resultsHTML += `
+      <div class="winner-section">
+        <div class="winner-header">
+          <span class="winner-icon">🏆</span>
+          <h4>Победитель аукциона</h4>
+        </div>
+        <div class="winner-contact-card">
+          <div class="contact-info">
+            <div class="contact-field">
+              <span class="contact-label">👤 Имя:</span>
+              <span class="contact-value">${winner.owner_name}</span>
+            </div>
+            <div class="contact-field">
+              <span class="contact-label">📞 Телефон:</span>
+              <span class="contact-value">
+                <a href="tel:${winner.owner_phone}" class="phone-link">${winner.owner_phone}</a>
+              </span>
+            </div>
+            ${winner.company_name ? `
+              <div class="contact-field">
+                <span class="contact-label">🏢 Компания:</span>
+                <span class="contact-value">${winner.company_name}</span>
+              </div>
+            ` : ''}
+            <div class="contact-field">
+              <span class="contact-label">🚜 Техника:</span>
+              <span class="contact-value">${winner.equipment_name}</span>
+            </div>
+          </div>
+          <div class="price-info">
+            <div class="price-main">
+              <span class="price-label">💰 Итоговая цена:</span>
+              <span class="price-value">${winner.total_price.toLocaleString()} ₽</span>
+            </div>
+            ${winner.hourly_rate ? `
+              <div class="price-detail">
+                <span class="price-label">Почасовая ставка:</span>
+                <span class="price-value">${winner.hourly_rate.toLocaleString()} ₽/час</span>
+              </div>
+            ` : ''}
+            ${winner.daily_rate ? `
+              <div class="price-detail">
+                <span class="price-label">Дневная ставка:</span>
+                <span class="price-value">${winner.daily_rate.toLocaleString()} ₽/день</span>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+        ${winner.comment ? `
+          <div class="winner-comment">
+            <h5>💬 Комментарий:</h5>
+            <p>${winner.comment}</p>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  } else {
+    resultsHTML += `
+      <div class="no-winner-section">
+        <div class="no-winner-card">
+          <span class="no-winner-icon">❌</span>
+          <h4>Аукцион завершен без победителя</h4>
+          <p>К сожалению, на данный аукцион не было подано ни одной ставки.</p>
         </div>
       </div>
     `;
+  }
 
-    if (winner) {
-      resultsHTML += `
-        <div class="winner-section">
-          <div class="winner-header">
-            <span class="winner-icon">🏆</span>
-            <h4>Победитель аукциона</h4>
+  if (statistics.total_bids > 0) {
+    resultsHTML += `
+      <div class="statistics-section">
+        <h4>📊 Статистика аукциона</h4>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-label">Всего ставок:</span>
+            <span class="stat-value">${statistics.total_bids}</span>
           </div>
-          <div class="winner-contact-card">
-            <div class="contact-info">
-              <div class="contact-field">
-                <span class="contact-label">👤 Имя:</span>
-                <span class="contact-value">${winner.owner_name}</span>
-              </div>
-              <div class="contact-field">
-                <span class="contact-label">📞 Телефон:</span>
-                <span class="contact-value">
-                  <a href="tel:${winner.owner_phone}" class="phone-link">${winner.owner_phone}</a>
-                </span>
-              </div>
-              ${winner.company_name ? `
-                <div class="contact-field">
-                  <span class="contact-label">🏢 Компания:</span>
-                  <span class="contact-value">${winner.company_name}</span>
-                </div>
-              ` : ''}
-              <div class="contact-field">
-                <span class="contact-label">🚜 Техника:</span>
-                <span class="contact-value">${winner.equipment_name}</span>
-              </div>
+          ${statistics.min_price ? `
+            <div class="stat-item">
+              <span class="stat-label">Минимальная цена:</span>
+              <span class="stat-value">${statistics.min_price.toLocaleString()} ₽</span>
             </div>
-            <div class="price-info">
-              <div class="price-main">
-                <span class="price-label">💰 Итоговая цена:</span>
-                <span class="price-value">${winner.total_price.toLocaleString()} ₽</span>
-              </div>
-              ${winner.hourly_rate ? `
-                <div class="price-detail">
-                  <span class="price-label">Почасовая ставка:</span>
-                  <span class="price-value">${winner.hourly_rate.toLocaleString()} ₽/час</span>
-                </div>
-              ` : ''}
-              ${winner.daily_rate ? `
-                <div class="price-detail">
-                  <span class="price-label">Дневная ставка:</span>
-                  <span class="price-value">${winner.daily_rate.toLocaleString()} ₽/день</span>
-                </div>
-              ` : ''}
+          ` : ''}
+          ${statistics.max_price ? `
+            <div class="stat-item">
+              <span class="stat-label">Максимальная цена:</span>
+              <span class="stat-value">${statistics.max_price.toLocaleString()} ₽</span>
             </div>
-          </div>
-          ${winner.comment ? `
-            <div class="winner-comment">
-              <h5>💬 Комментарий:</h5>
-              <p>${winner.comment}</p>
+          ` : ''}
+          ${statistics.avg_price ? `
+            <div class="stat-item">
+              <span class="stat-label">Средняя цена:</span>
+              <span class="stat-value">${statistics.avg_price.toLocaleString()} ₽</span>
             </div>
           ` : ''}
         </div>
-      `;
-    } else {
-      resultsHTML += `
-        <div class="no-winner-section">
-          <div class="no-winner-card">
-            <span class="no-winner-icon">❌</span>
-            <h4>Аукцион завершен без победителя</h4>
-            <p>К сожалению, на данный аукцион не было подано ни одной ставки.</p>
-          </div>
-        </div>
-      `;
-    }
-
-    if (statistics.total_bids > 0) {
-      resultsHTML += `
-        <div class="statistics-section">
-          <h4>📊 Статистика аукциона</h4>
-          <div class="stats-grid">
-            <div class="stat-item">
-              <span class="stat-label">Всего ставок:</span>
-              <span class="stat-value">${statistics.total_bids}</span>
-            </div>
-            ${statistics.min_price ? `
-              <div class="stat-item">
-                <span class="stat-label">Минимальная цена:</span>
-                <span class="stat-value">${statistics.min_price.toLocaleString()} ₽</span>
-              </div>
-            ` : ''}
-            ${statistics.max_price ? `
-              <div class="stat-item">
-                <span class="stat-label">Максимальная цена:</span>
-                <span class="stat-value">${statistics.max_price.toLocaleString()} ₽</span>
-              </div>
-            ` : ''}
-            ${statistics.avg_price ? `
-              <div class="stat-item">
-                <span class="stat-label">Средняя цена:</span>
-                <span class="stat-value">${statistics.avg_price.toLocaleString()} ₽</span>
-              </div>
-            ` : ''}
-          </div>
-        </div>
-      `;
-    }
-
-    content.innerHTML = resultsHTML;
-    showModal('auction-results-modal');
-
-  } catch (error) {
-    console.error('❌ Ошибка загрузки результатов аукциона:', error);
-    console.error('❌ Stack trace:', error.stack);
-    
-    // Более детальная информация об ошибке
-    let errorMessage = 'Неизвестная ошибка';
-    if (error.message) {
-      errorMessage = error.message;
-    } else if (typeof error === 'string') {
-      errorMessage = error;
-    }
-    
-    alert(`❌ Ошибка загрузки результатов аукциона: ${errorMessage}`);
+      </div>
+    `;
   }
+
+  content.innerHTML = resultsHTML;
+  showModal('auction-results-modal');
 };
 
 // Функция принудительного закрытия истекшего аукциона
@@ -394,29 +396,30 @@ window.forceCloseExpiredAuction = async function(requestId) {
     return;
   }
   
-  try {
-    console.log(`🔄 Принудительно закрываем аукцион #${requestId}...`);
+  console.log(`🔄 Принудительно закрываем аукцион #${requestId}...`);
+  
+  const response = await apiRequest(`/requests/${requestId}/close-auction`, {
+    method: 'POST'
+  });
+  
+  if (response.success) {
+    alert('✅ Аукцион успешно закрыт!');
+    // Обновляем отображение заявок
+    if (typeof renderManagerOrders === 'function') {
+      await renderManagerOrders();
+    } else {
+      // Если функции нет, просто перезагружаем страницу
+      window.location.reload();
+    }
+  } else {
+    console.error('❌ Ошибка при закрытии аукциона:', response);
     
-    const response = await apiRequest(`/requests/${requestId}/close-auction`, {
-      method: 'POST'
-    });
-    
-    if (response.success) {
-      alert('✅ Аукцион успешно закрыт!');
-      // Обновляем отображение заявок
-      if (typeof renderManagerOrders === 'function') {
-        await renderManagerOrders();
-      } else {
-        // Если функции нет, просто перезагружаем страницу
-        window.location.reload();
-      }
+    // Специальная обработка для разных типов ошибок
+    if (response.status === 403) {
+      alert('❌ У вас нет прав для закрытия аукциона. Обратитесь к администратору.');
     } else {
       alert('❌ Ошибка закрытия аукциона: ' + response.message);
     }
-    
-  } catch (error) {
-    console.error('❌ Ошибка при закрытии аукциона:', error);
-    alert('❌ Ошибка при закрытии аукциона: ' + error.message);
   }
 };
 
@@ -488,46 +491,43 @@ async function handleLogin(event) {
   const loginError = document.getElementById('login-error');
   const password = passwordInput.value.trim();
   
-  try {
-    const response = await apiRequest('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ password })
-    });
-    
-    if (response.success) {
-      appData.currentUser = response.user;
+  const response = await apiRequest('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ password })
+  });
+  
+  if (response.success) {
+    appData.currentUser = response.user;
     loginError.classList.add('hidden');
     
-      // Загружаем типы техники
-      await loadEquipmentTypes();
-      
-      switch (response.user.role) {
+    // Загружаем типы техники
+    await loadEquipmentTypes();
+    
+    switch (response.user.role) {
       case 'admin':
         showPage('admin-dashboard');
-          await initAdminDashboard();
+        await initAdminDashboard();
         break;
       case 'owner':
         showPage('owner-dashboard');
-          await initOwnerDashboard();
+        await initOwnerDashboard();
         break;
       case 'manager':
         showPage('manager-dashboard');
-          await initManagerDashboard();
+        await initManagerDashboard();
         break;
     }
-    }
-  } catch (error) {
+  } else {
     loginError.classList.remove('hidden');
-    loginError.textContent = error.message || 'Ошибка авторизации';
+    loginError.textContent = response.message || 'Ошибка авторизации';
     passwordInput.value = '';
   }
 }
 
 async function handleLogout() {
-  try {
-    await apiRequest('/auth/logout', { method: 'POST' });
-  } catch (error) {
-    console.error('Ошибка при выходе:', error);
+  const response = await apiRequest('/auth/logout', { method: 'POST' });
+  if (!response.success) {
+    console.error('Ошибка при выходе:', response);
   }
   
   appData.currentUser = null;
@@ -538,17 +538,15 @@ async function handleLogout() {
 
 // Загрузка типов техники с сервера
 async function loadEquipmentTypes() {
-  try {
-    const response = await apiRequest('/equipment/equipment-types');
-    if (response.success) {
-      appData.equipmentTypes = response.data;
-      console.log('Типы техники загружены:', appData.equipmentTypes);
-      
-      // Обновляем все выпадающие списки после загрузки
-      updateEquipmentTypeSelects();
-    }
-  } catch (error) {
-    console.error('Ошибка загрузки типов техники:', error);
+  const response = await apiRequest('/equipment/equipment-types');
+  if (response.success) {
+    appData.equipmentTypes = response.data;
+    console.log('Типы техники загружены:', appData.equipmentTypes);
+    
+    // Обновляем все выпадающие списки после загрузки
+    updateEquipmentTypeSelects();
+  } else {
+    console.error('Ошибка загрузки типов техники:', response);
     // Используем резервные данные
     appData.equipmentTypes = {
       "Самосвал": ["3-осный (6x4)", "4-осный (8x4)"],
