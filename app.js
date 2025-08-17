@@ -233,30 +233,12 @@ window.showAuctionResults = async function(requestId) {
   console.log('📋 Ответ API:', response);
   
   if (!response.success) {
-    console.warn(`⚠️ Аукцион не завершен: ${response.message}`);
+    console.warn(`⚠️ Ошибка загрузки результатов: ${response.message}`);
     
-    // Если аукцион еще не закрыт, попробуем его закрыть принудительно
+    // Если аукцион еще не завершен, показываем информативное сообщение
     if (response.message && response.message.includes('не завершен')) {
-      console.log('🔄 Пытаемся принудительно закрыть аукцион...');
-      
-      const closeResponse = await apiRequest(`/requests/${requestId}/close-auction`, {
-        method: 'POST'
-      });
-      
-      console.log('📋 Результат закрытия:', closeResponse);
-      
-      if (closeResponse.success) {
-        alert('Аукцион закрыт. Обновите страницу для просмотра результатов.');
-        return;
-      } else {
-        // Специальная обработка для разных ошибок
-        if (closeResponse.status === 403) {
-          alert('❌ У вас нет прав для закрытия аукциона. Обратитесь к администратору.');
-        } else {
-          alert('❌ Не удалось закрыть аукцион: ' + (closeResponse.message || 'Неизвестная ошибка'));
-        }
-        return;
-      }
+      alert('⏳ Аукцион еще обрабатывается на сервере. Попробуйте через несколько секунд.');
+      return;
     }
     
     alert('Ошибка загрузки результатов аукциона: ' + (response.message || 'Неизвестная ошибка'));
@@ -390,38 +372,7 @@ window.showAuctionResults = async function(requestId) {
   showModal('auction-results-modal');
 };
 
-// Функция принудительного закрытия истекшего аукциона
-window.forceCloseExpiredAuction = async function(requestId) {
-  if (!confirm(`Вы уверены, что хотите принудительно закрыть аукцион #${requestId}?`)) {
-    return;
-  }
-  
-  console.log(`🔄 Принудительно закрываем аукцион #${requestId}...`);
-  
-  const response = await apiRequest(`/requests/${requestId}/close-auction`, {
-    method: 'POST'
-  });
-  
-  if (response.success) {
-    alert('✅ Аукцион успешно закрыт!');
-    // Обновляем отображение заявок
-    if (typeof renderManagerOrders === 'function') {
-      await renderManagerOrders();
-    } else {
-      // Если функции нет, просто перезагружаем страницу
-      window.location.reload();
-    }
-  } else {
-    console.error('❌ Ошибка при закрытии аукциона:', response);
-    
-    // Специальная обработка для разных типов ошибок
-    if (response.status === 403) {
-      alert('❌ У вас нет прав для закрытия аукциона. Обратитесь к администратору.');
-    } else {
-      alert('❌ Ошибка закрытия аукциона: ' + response.message);
-    }
-  }
-};
+
 
 window.respondToOrder = async function(orderId) {
   try {
@@ -2404,14 +2355,7 @@ class RealTimeUpdater {
           }
         </div>
         
-        <!-- Кнопка принудительного закрытия для истекших аукционов -->
-        ${order.status === 'auction_active' && deadline && new Date(deadline) <= new Date() ? 
-          `<div class="order-actions">
-            <button class="btn btn--danger btn--sm" onclick="forceCloseExpiredAuction(${order.id})">
-              🔐 Закрыть истекший аукцион
-            </button>
-          </div>` : ''
-        }
+        
         ${winnerInfo}
       `;
       grid.appendChild(card);
