@@ -278,6 +278,7 @@ class NotificationService {
           COUNT(CASE WHEN read_at IS NULL THEN 1 END) as unread,
           COUNT(CASE WHEN telegram_sent = TRUE THEN 1 END) as telegram_sent,
           COUNT(CASE WHEN type = 'new_request' THEN 1 END) as new_requests,
+          COUNT(CASE WHEN type = 'new_bid' THEN 1 END) as new_bids,
           COUNT(CASE WHEN type = 'bid_accepted' THEN 1 END) as bid_accepted,
           COUNT(CASE WHEN type = 'bid_rejected' THEN 1 END) as bid_rejected,
           COUNT(CASE WHEN type = 'auction_closed' THEN 1 END) as auction_closed
@@ -299,7 +300,7 @@ class NotificationService {
   static async notifyNewBid(managerId, requestId, bidderName, totalPrice, equipmentInfo) {
     try {
       return await this.sendNotification(managerId, {
-        type: 'new_bid',
+        type: 'new_bid', // Теперь используем правильный тип после миграции
         title: '🔔 Новая ставка!',
         message: `Пользователь ${bidderName} подал ставку на заявку "${equipmentInfo}". Общая стоимость: ${totalPrice ? totalPrice.toLocaleString() + ' ₽' : 'не указана'}`
       });

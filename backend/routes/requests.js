@@ -4,10 +4,17 @@ const RentalRequest = require('../models/RentalRequest');
 const RentalBid = require('../models/RentalBid');
 const Equipment = require('../models/Equipment');
 const User = require('../models/User');
-const { requireAuth, requireManager, requireOwner, validateRequired } = require('../middleware/auth');
+const { requireAuth, requireAuthOrTelegram, requireManager, requireOwner, validateRequired } = require('../middleware/auth');
 
-// Применяем авторизацию ко всем роутам
-router.use(requireAuth);
+// Применяем авторизацию ко всем роутам (кроме GET /)
+router.use((req, res, next) => {
+  // Для GET /api/requests используем комбинированную авторизацию
+  if (req.method === 'GET' && req.path === '/') {
+    return requireAuthOrTelegram(req, res, next);
+  }
+  // Для остальных роутов - стандартная авторизация
+  return requireAuth(req, res, next);
+});
 
 // GET /api/requests - Получить заявки
 router.get('/', async (req, res, next) => {
