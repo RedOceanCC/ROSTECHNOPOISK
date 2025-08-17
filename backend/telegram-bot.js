@@ -567,18 +567,20 @@ class TelegramWebApp {
           });
         }
 
-        // Сохраняем отклонение в базу данных
+        // Сохраняем отклонение в базу данных (если таблица существует)
         const Database = require('./models/Database');
-        const declineSQL = `
-          INSERT INTO request_declines (request_id, owner_id, reason, created_at)
-          VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-        `;
-        
         try {
+          const declineSQL = `
+            INSERT INTO request_declines (request_id, owner_id, reason, created_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+          `;
           await Database.run(declineSQL, [requestId, user.id, reason || 'Не указана']);
         } catch (dbError) {
-          // Если таблица не существует, просто логируем
+          // Если таблица не существует или другая ошибка БД, логируем в консоль
           console.log(`Пользователь ${user.name} (ID: ${user.id}) отклонил заявку ${requestId}. Причина: ${reason || 'Не указана'}`);
+          if (dbError.code !== 'SQLITE_ERROR') {
+            console.error('Неожиданная ошибка БД при сохранении отклонения:', dbError);
+          }
         }
 
         res.json({ 

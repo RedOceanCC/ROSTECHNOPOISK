@@ -43,17 +43,19 @@ tar -czf backup_$(date +%Y%m%d_%H%M%S).tar.gz backend/ telegram-webapp/
 ### 2. Обновление кода
 
 ```bash
-# Замените старый telegram-bot.js на оптимизированную версию
-mv backend/telegram-bot.js backend/telegram-bot.js.backup
-mv backend/telegram-bot-optimized.js backend/telegram-bot.js
+# Убедитесь, что telegram-bot.js уже обновлен с исправлениями
+# (файл уже содержит исправления для таблицы request_declines)
 
-# Добавьте новые файлы обработки ошибок
-cp backend/utils/errors-enhanced.js backend/utils/errors.js
+# Добавьте новые файлы обработки ошибок (опционально)
+# cp backend/utils/errors-enhanced.js backend/utils/errors.js
 
 # Проверьте, что все файлы на месте
 ls -la backend/telegram-bot.js
-ls -la backend/utils/errors.js
 ls -la telegram-webapp/request.html
+
+# Важно: для полного рефакторинга используйте:
+# mv backend/telegram-bot.js backend/telegram-bot.js.backup
+# mv backend/telegram-bot-optimized.js backend/telegram-bot.js
 ```
 
 ### 3. Выполнение миграций базы данных
@@ -148,6 +150,26 @@ sqlite3 database/ростехнопоиск.db "PRAGMA integrity_check;"
 - Количество отправленных уведомлений: `SELECT COUNT(*) FROM notifications WHERE created_at > datetime('now', '-1 day');`
 - Ошибки доставки Telegram: `SELECT COUNT(*) FROM notifications WHERE telegram_sent = 0 AND created_at > datetime('now', '-1 day');`
 - Активность ставок: `SELECT COUNT(*) FROM rental_bids WHERE created_at > datetime('now', '-1 day');`
+
+## Исправление ошибки с таблицей request_declines
+
+### Проблема:
+```
+SQLITE_ERROR: no such table: main.request_declines
+```
+
+### Решение:
+Эта ошибка возникает при обращении к таблице `request_declines` до выполнения миграций. Исправление уже применено в коде - добавлена обработка ошибок с try-catch блоками.
+
+**Файлы с исправлениями:**
+- `backend/telegram-bot.js` - добавлена устойчивая обработка отсутствующих таблиц
+- `backend/telegram-bot-optimized.js` - аналогичные исправления
+
+**Что исправлено:**
+- Обращения к `request_declines` обернуты в try-catch
+- При отсутствии таблицы информация логируется в консоль
+- Сервер не падает при отсутствии таблицы
+- Миграции выполняются корректно после исправления
 
 ## Откат изменений (при необходимости)
 
