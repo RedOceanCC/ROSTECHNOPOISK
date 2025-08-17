@@ -6,6 +6,7 @@ const Equipment = require('./models/Equipment');
 const RentalRequest = require('./models/RentalRequest');
 const RentalBid = require('./models/RentalBid');
 const NotificationService = require('./services/NotificationService');
+const { requireTelegramAuth } = require('./middleware/auth');
 
 class TelegramWebApp {
   constructor() {
@@ -354,16 +355,10 @@ class TelegramWebApp {
   // Метод для настройки роутов на главном сервере
   static setupRoutes(app) {
     // API для получения данных заявки
-    app.get('/api/telegram/request/:requestId', async (req, res) => {
+    app.get('/api/telegram/request/:requestId', requireTelegramAuth, async (req, res) => {
       try {
         const { requestId } = req.params;
-        const { userId } = req.query;
-
-        // Проверяем права доступа
-        const user = await TelegramWebApp.findUserByTelegramId(userId);
-        if (!user) {
-          return res.status(403).json({ error: 'Пользователь не найден' });
-        }
+        const user = req.user; // Пользователь уже проверен в middleware
 
         const request = await RentalRequest.findById(requestId);
         if (!request) {
@@ -399,15 +394,10 @@ class TelegramWebApp {
     });
 
     // API для подачи ставки
-    app.post('/api/telegram/bid', async (req, res) => {
+    app.post('/api/telegram/bid', requireTelegramAuth, async (req, res) => {
       try {
-        const { requestId, userId, equipmentId, hourlyRate, dailyRate, totalPrice, comment } = req.body;
-
-        // Проверяем пользователя
-        const user = await TelegramWebApp.findUserByTelegramId(userId);
-        if (!user) {
-          return res.status(403).json({ error: 'Пользователь не найден' });
-        }
+        const { requestId, equipmentId, hourlyRate, dailyRate, totalPrice, comment } = req.body;
+        const user = req.user; // Пользователь уже проверен в middleware
 
         // Создаем ставку
         const bid = await RentalBid.create({
@@ -434,15 +424,10 @@ class TelegramWebApp {
     });
 
     // API для отклонения заявки
-    app.post('/api/telegram/decline', async (req, res) => {
+    app.post('/api/telegram/decline', requireTelegramAuth, async (req, res) => {
       try {
-        const { requestId, userId, reason } = req.body;
-
-        // Проверяем пользователя
-        const user = await TelegramWebApp.findUserByTelegramId(userId);
-        if (!user) {
-          return res.status(403).json({ error: 'Пользователь не найден' });
-        }
+        const { requestId, reason } = req.body;
+        const user = req.user; // Пользователь уже проверен в middleware
 
         // Логируем отклонение (можно добавить таблицу для отклонений)
         console.log(`Пользователь ${user.name} отклонил заявку ${requestId}. Причина: ${reason}`);

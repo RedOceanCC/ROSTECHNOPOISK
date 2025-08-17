@@ -153,6 +153,106 @@ const errorHandler = (err, req, res, next) => {
   });
 };
 
+// Middleware для Telegram авторизации
+const requireTelegramAuth = async (req, res, next) => {
+  const logger = require('../utils/logger');
+  
+  try {
+    // Проверяем разные способы передачи Telegram ID
+    let telegramId = null;
+    
+    // 1. Из query параметров (для GET запросов)
+    if (req.query.userId) {
+      telegramId = req.query.userId;
+    }
+    // 2. Из body (для POST запросов)
+    else if (req.body.userId) {
+      telegramId = req.body.userId;
+    }
+    // 3. Из заголовков
+    else if (req.headers['x-telegram-user-id']) {
+      telegramId = req.headers['x-telegram-user-id'];
+    }
+    
+    if (!telegramId) {
+      logger.warn('Telegram авторизация не удалась - отсутствует Telegram ID', {
+        url: req.originalUrl,
+        method: req.method,
+        hasQuery: !!req.query.userId,
+        hasBody: !!req.body.userId,
+        hasHeader: !!req.headers['x-telegram-user-id']
+      });
+      
+      return res.status(401).json({
+        success: false,
+        message: 'Необходима Telegram авторизация'
+      });
+    }
+    
+    // Ищем пользователя по Telegram ID
+    const User = require('../models/User');
+    const user = await User.findByTelegramId(telegramId);
+    
+    if (!user) {
+      logger.warn('Telegram авторизация не удалась - пользователь не найден', {
+        telegramId,
+        url: req.originalUrl,
+        method: req.method
+      });
+      
+      return res.status(403).json({
+        success: false,
+        message: 'Пользователь не найден'
+      });
+    }
+    
+    // Добавляем пользователя в объект запроса
+    req.user = user;
+    
+    logger.debug('Telegram авторизация успешна', {
+      userId: user.id,
+      userName: user.name,
+      userRole: user.role,
+      telegramId,
+      url: req.originalUrl
+    });
+    
+    next();
+    
+  } catch (error) {
+    logger.error('Ошибка Telegram авторизации', {
+      error: error.message,
+      stack: error.stack,
+      url: req.originalUrl,
+      method: req.method
+    });
+    
+    return res.status(500).json({
+      success: false,
+      message: 'Ошибка авторизации'
+    });
+  }
+};
+
+// Комбинированный middleware - проверяет как веб-сессию, так и Telegram авторизацию
+const requireAuthOrTelegram = async (req, res, next) => {
+  const logger = require('../utils/logger');
+  
+  // Сначала проверяем обычную веб-авторизацию
+  if (req.session && req.session.user) {
+    req.user = req.session.user;
+    logger.debug('Авторизация через веб-сессию', {
+      userId: req.user.id,
+      userName: req.user.name,
+      url: req.originalUrl
+    });
+    return next();
+  }
+  
+  // Если веб-авторизации нет, пробуем Telegram
+  return requireTelegramAuth(req, res, next);
+};
+
 // Middleware для валидации данных
 const validateRequired = (fields) => {
   return (req, res, next) => {
@@ -177,6 +277,8 @@ const validateRequired = (fields) => {
 
 module.exports = {
   requireAuth,
+  requireTelegramAuth,
+  requireAuthOrTelegram,
   requireRole,
   requireAdmin,
   requireOwner,
