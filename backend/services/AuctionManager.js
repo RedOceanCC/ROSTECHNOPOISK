@@ -46,12 +46,12 @@ class AuctionManager {
   // Проверка и закрытие истекших аукционов
   async checkExpiredAuctions() {
     try {
-      logger.debug('🔍 Проверка истекших аукционов...');
+      logger.info('🔍 Проверка истекших аукционов...');
       
       const expiredAuctions = await RentalRequest.findExpiredAuctions();
       
       if (expiredAuctions.length === 0) {
-        logger.debug('✅ Истекших аукционов не найдено');
+        logger.info('✅ Истекших аукционов не найдено');
         return;
       }
 

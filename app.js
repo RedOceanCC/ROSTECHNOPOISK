@@ -194,6 +194,18 @@ window.showAuctionResults = async function(requestId) {
   try {
     const response = await apiRequest(`/requests/${requestId}/results`);
     if (!response.success) {
+      // Если аукцион еще не закрыт, попробуем его закрыть принудительно
+      if (response.message.includes('не завершен')) {
+        const closeResponse = await apiRequest(`/requests/${requestId}/close-auction`, {
+          method: 'POST'
+        });
+        
+        if (closeResponse.success) {
+          alert('Аукцион закрыт. Обновите страницу для просмотра результатов.');
+          return;
+        }
+      }
+      
       alert('Ошибка загрузки результатов аукциона: ' + response.message);
       return;
     }
@@ -327,6 +339,38 @@ window.showAuctionResults = async function(requestId) {
   } catch (error) {
     console.error('Ошибка загрузки результатов аукциона:', error);
     alert('Ошибка загрузки результатов аукциона');
+  }
+};
+
+// Функция принудительного закрытия истекшего аукциона
+window.forceCloseExpiredAuction = async function(requestId) {
+  if (!confirm(`Вы уверены, что хотите принудительно закрыть аукцион #${requestId}?`)) {
+    return;
+  }
+  
+  try {
+    console.log(`🔄 Принудительно закрываем аукцион #${requestId}...`);
+    
+    const response = await apiRequest(`/requests/${requestId}/close-auction`, {
+      method: 'POST'
+    });
+    
+    if (response.success) {
+      alert('✅ Аукцион успешно закрыт!');
+      // Обновляем отображение заявок
+      if (typeof renderManagerOrders === 'function') {
+        await renderManagerOrders();
+      } else {
+        // Если функции нет, просто перезагружаем страницу
+        window.location.reload();
+      }
+    } else {
+      alert('❌ Ошибка закрытия аукциона: ' + response.message);
+    }
+    
+  } catch (error) {
+    console.error('❌ Ошибка при закрытии аукциона:', error);
+    alert('❌ Ошибка при закрытии аукциона: ' + error.message);
   }
 };
 
@@ -2315,23 +2359,71 @@ class RealTimeUpdater {
             </span>` : ''
           }
         </div>
+        
+        <!-- Кнопка принудительного закрытия для истекших аукционов -->
+        ${order.status === 'auction_active' && deadline && new Date(deadline) <= new Date() ? 
+          `<div class="order-actions">
+            <button class="btn btn--danger btn--sm" onclick="forceCloseExpiredAuction(${order.id})">
+              🔐 Закрыть истекший аукцион
+            </button>
+          </div>` : ''
+        }
         ${winnerInfo}
       `;
       grid.appendChild(card);
 
-      // Запускаем таймер для активных аукционов (без рекурсивного вызова)
+      // Запускаем таймер для активных аукционов 
       if (deadline && order.status === 'auction_active') {
         const status = auctionTimer.getAuctionStatus(deadline);
-        auctionTimer.createTimer(timerId, deadline, {
-          prefix: '⏰',
-          activeClass: `auction-timer ${status.class}`,
-          urgentClass: 'auction-timer urgent',
-          expiredClass: 'auction-timer expired',
-          expiredText: '⏱️ Аукцион завершен'
-          // Убираем onExpired чтобы избежать рекурсивных вызовов
-        });
+        
+        // Если аукцион уже истек, обновляем статус сразу
+        if (status.expired) {
+          this.handleExpiredAuction(card, order.id);
+        } else {
+          auctionTimer.createTimer(timerId, deadline, {
+            prefix: '⏰',
+            activeClass: `auction-timer ${status.class}`,
+            urgentClass: 'auction-timer urgent',
+            expiredClass: 'auction-timer expired',
+            expiredText: '⏱️ Аукцион завершен',
+            onExpired: () => {
+              this.handleExpiredAuction(card, order.id);
+            }
+          });
+        }
       }
     });
+  }
+
+  // Обработка истекшего аукциона на фронтенде
+  handleExpiredAuction(card, orderId) {
+    try {
+      // Обновляем визуальное состояние карточки
+      const statusBadge = card.querySelector('.badge--pending');
+      if (statusBadge) {
+        statusBadge.textContent = 'Аукцион завершен';
+        statusBadge.className = 'badge badge--available';
+      }
+
+      // Добавляем кликабельность
+      card.classList.add('clickable');
+      card.style.cursor = 'pointer';
+      card.onclick = () => showAuctionResults(orderId);
+
+      // Добавляем подсказку
+      const badgesContainer = card.querySelector('.order-badges');
+      if (badgesContainer && !badgesContainer.querySelector('.clickable-hint')) {
+        const hintBadge = document.createElement('span');
+        hintBadge.className = 'badge badge--secondary clickable-hint';
+        hintBadge.innerHTML = '👁️ Нажмите для просмотра результатов';
+        badgesContainer.appendChild(hintBadge);
+      }
+
+      console.log(`✅ Аукцион #${orderId} помечен как завершенный на фронтенде`);
+      
+    } catch (error) {
+      console.error('❌ Ошибка при обработке истекшего аукциона:', error);
+    }
   }
 
   // Рендеринг заявок владельца из уже полученных данных
