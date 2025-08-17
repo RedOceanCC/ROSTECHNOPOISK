@@ -8,10 +8,10 @@ class RentalRequest {
       work_description, location, budget_range
     } = requestData;
     
-    // Устанавливаем дедлайн аукциона (24 часа по умолчанию)
-    const auctionDurationHours = parseInt(process.env.AUCTION_DURATION_HOURS) || 24;
+    // Устанавливаем дедлайн аукциона (5 минут для демо)
+    const auctionDurationMinutes = parseInt(process.env.AUCTION_DURATION_MINUTES) || 5;
     const auction_deadline = new Date();
-    auction_deadline.setHours(auction_deadline.getHours() + auctionDurationHours);
+    auction_deadline.setMinutes(auction_deadline.getMinutes() + auctionDurationMinutes);
     
     const sql = `
       INSERT INTO rental_requests (
@@ -225,6 +225,33 @@ class RentalRequest {
     // Затем удаляем саму заявку
     const result = await database.run('DELETE FROM rental_requests WHERE id = ?', [id]);
     return result.changes > 0;
+  }
+
+  // Получить истекшие аукционы для автоматического закрытия
+  static async findExpiredAuctions() {
+    const sql = `
+      SELECT * FROM rental_requests
+      WHERE status = 'auction_active'
+        AND auction_deadline <= datetime('now')
+      ORDER BY auction_deadline ASC
+    `;
+    
+    const rows = await database.all(sql);
+    return rows.map(row => ({
+      id: row.id,
+      manager_id: row.manager_id,
+      equipment_type: row.equipment_type,
+      equipment_subtype: row.equipment_subtype,
+      auction_deadline: row.auction_deadline,
+      start_date: row.start_date,
+      end_date: row.end_date,
+      work_description: row.work_description,
+      location: row.location,
+      budget_range: row.budget_range,
+      status: row.status,
+      created_at: row.created_at,
+      updated_at: row.updated_at
+    }));
   }
 }
 

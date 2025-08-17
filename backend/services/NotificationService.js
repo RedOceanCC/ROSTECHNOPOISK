@@ -381,6 +381,30 @@ class NotificationService {
       throw error;
     }
   }
+
+  // Уведомление о закрытии аукциона для менеджера
+  static async notifyAuctionClosed(managerId, requestData, winner = null) {
+    try {
+      const title = winner ? '🏆 Аукцион завершен с победителем!' : '📭 Аукцион завершен без ставок';
+      const message = winner 
+        ? `Аукцион на ${requestData.equipment_type} - ${requestData.equipment_subtype} завершен. Победитель: ${winner.name}, цена: ${winner.price}₽.`
+        : `Аукцион на ${requestData.equipment_type} - ${requestData.equipment_subtype} завершен. К сожалению, ставок не поступило.`;
+
+      return await this.sendNotification(managerId, {
+        type: winner ? 'auction_closed_winner' : 'auction_closed_no_bids',
+        title,
+        message,
+        data: {
+          equipment_type: requestData.equipment_type,
+          equipment_subtype: requestData.equipment_subtype,
+          winner: winner
+        }
+      });
+    } catch (error) {
+      console.error('❌ Ошибка при отправке уведомления о закрытии аукциона:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = NotificationService;

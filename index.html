@@ -624,9 +624,28 @@
                 </div>
             </div>
         </div>
-    </div>
+            </div>
 
-    <script src="notifications.js"></script>
+        <!-- Модальное окно результатов аукциона -->
+        <div id="auction-results-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content card auction-results-modal">
+                <div class="modal-header">
+                    <h3>🏁 Результаты аукциона</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="auction-results-content">
+                        <!-- Контент будет добавлен динамически -->
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn--secondary modal-cancel">Закрыть</button>
+                </div>
+            </div>
+        </div>
+
+        <script src="notifications.js"></script>
     <script src="validation.js"></script>
     <script src="app.js"></script>
     <script src="notification-diagnostics.js"></script>

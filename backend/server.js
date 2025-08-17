@@ -287,6 +287,17 @@ async function startServer() {
       console.log('⚠️  TELEGRAM_BOT_TOKEN не установлен, бот не запущен');
     }
     
+    // Запускаем менеджер аукционов
+    try {
+      const auctionManager = require('./services/AuctionManager');
+      auctionManager.start();
+      logger.info('AuctionManager запущен');
+      console.log('⏰ AuctionManager запущен для автоматического закрытия аукционов');
+    } catch (error) {
+      logger.error('Ошибка запуска AuctionManager:', error);
+      console.error('❌ Ошибка запуска AuctionManager:', error.message);
+    }
+    
     // Запускаем сервер
     app.listen(PORT, () => {
       logger.info(`Сервер РОСТЕХНОПОИСК запущен на порту ${PORT}`, {

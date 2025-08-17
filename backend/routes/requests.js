@@ -330,6 +330,91 @@ router.get('/admin/stats', async (req, res, next) => {
   }
 });
 
+// GET /api/requests/:id/results - Получить результаты аукциона
+router.get('/:id/results', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    const request = await RentalRequest.findById(id);
+    
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: 'Заявка не найдена'
+      });
+    }
+    
+    // Проверяем права доступа
+    const hasAccess = req.user.role === 'admin' || 
+                     req.user.id === request.manager_id;
+    
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false,
+        message: 'Доступ запрещен'
+      });
+    }
+    
+    // Проверяем, что аукцион завершен
+    if (request.status !== 'auction_closed' && request.status !== 'completed') {
+      return res.status(400).json({
+        success: false,
+        message: 'Аукцион еще не завершен'
+      });
+    }
+    
+    // Получаем подробную информацию о победителе
+    let winner = null;
+    if (request.winning_bid_id) {
+      const winningBid = await RentalBid.findById(request.winning_bid_id);
+      if (winningBid) {
+        winner = {
+          bid_id: winningBid.id,
+          owner_name: winningBid.owner_name,
+          owner_phone: winningBid.owner_phone,
+          company_name: winningBid.company_name,
+          equipment_name: winningBid.equipment_name,
+          hourly_rate: winningBid.hourly_rate,
+          daily_rate: winningBid.daily_rate,
+          total_price: winningBid.total_price,
+          comment: winningBid.comment,
+          created_at: winningBid.created_at
+        };
+      }
+    }
+    
+    // Получаем все ставки для статистики
+    const allBids = await RentalBid.findByRequestId(id);
+    
+    res.json({
+      success: true,
+      request: {
+        id: request.id,
+        equipment_type: request.equipment_type,
+        equipment_subtype: request.equipment_subtype,
+        location: request.location,
+        start_date: request.start_date,
+        end_date: request.end_date,
+        work_description: request.work_description,
+        budget_range: request.budget_range,
+        status: request.status,
+        auction_deadline: request.auction_deadline,
+        created_at: request.created_at
+      },
+      winner: winner,
+      statistics: {
+        total_bids: allBids.length,
+        min_price: allBids.length > 0 ? Math.min(...allBids.map(b => b.total_price)) : null,
+        max_price: allBids.length > 0 ? Math.max(...allBids.map(b => b.total_price)) : null,
+        avg_price: allBids.length > 0 ? Math.round(allBids.reduce((sum, b) => sum + b.total_price, 0) / allBids.length) : null
+      }
+    });
+    
+  } catch (error) {
+    next(error);
+  }
+});
+
 // POST /api/requests/:id/close-auction - Принудительно закрыть аукцион (только админ)
 router.post('/:id/close-auction', async (req, res, next) => {
   try {

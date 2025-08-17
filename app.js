@@ -189,6 +189,147 @@ window.editCompany = function(companyId) {
   }
 };
 
+// Функция показа результатов аукциона
+window.showAuctionResults = async function(requestId) {
+  try {
+    const response = await apiRequest(`/requests/${requestId}/results`);
+    if (!response.success) {
+      alert('Ошибка загрузки результатов аукциона: ' + response.message);
+      return;
+    }
+
+    const { request, winner, statistics } = response;
+    
+    const modal = document.getElementById('auction-results-modal');
+    if (!modal) {
+      console.error('Модальное окно результатов аукциона не найдено');
+      return;
+    }
+
+    const content = document.getElementById('auction-results-content');
+    
+    let resultsHTML = `
+      <div class="auction-results-header">
+        <h3>🏁 Результаты аукциона</h3>
+        <div class="auction-info">
+          <h4>${request.equipment_type} - ${request.equipment_subtype}</h4>
+          <p><strong>Местоположение:</strong> ${request.location}</p>
+          <p><strong>Период:</strong> ${formatDate(request.start_date)} - ${formatDate(request.end_date)}</p>
+          <p><strong>Завершен:</strong> ${new Date(request.auction_deadline).toLocaleString()}</p>
+        </div>
+      </div>
+    `;
+
+    if (winner) {
+      resultsHTML += `
+        <div class="winner-section">
+          <div class="winner-header">
+            <span class="winner-icon">🏆</span>
+            <h4>Победитель аукциона</h4>
+          </div>
+          <div class="winner-contact-card">
+            <div class="contact-info">
+              <div class="contact-field">
+                <span class="contact-label">👤 Имя:</span>
+                <span class="contact-value">${winner.owner_name}</span>
+              </div>
+              <div class="contact-field">
+                <span class="contact-label">📞 Телефон:</span>
+                <span class="contact-value">
+                  <a href="tel:${winner.owner_phone}" class="phone-link">${winner.owner_phone}</a>
+                </span>
+              </div>
+              ${winner.company_name ? `
+                <div class="contact-field">
+                  <span class="contact-label">🏢 Компания:</span>
+                  <span class="contact-value">${winner.company_name}</span>
+                </div>
+              ` : ''}
+              <div class="contact-field">
+                <span class="contact-label">🚜 Техника:</span>
+                <span class="contact-value">${winner.equipment_name}</span>
+              </div>
+            </div>
+            <div class="price-info">
+              <div class="price-main">
+                <span class="price-label">💰 Итоговая цена:</span>
+                <span class="price-value">${winner.total_price.toLocaleString()} ₽</span>
+              </div>
+              ${winner.hourly_rate ? `
+                <div class="price-detail">
+                  <span class="price-label">Почасовая ставка:</span>
+                  <span class="price-value">${winner.hourly_rate.toLocaleString()} ₽/час</span>
+                </div>
+              ` : ''}
+              ${winner.daily_rate ? `
+                <div class="price-detail">
+                  <span class="price-label">Дневная ставка:</span>
+                  <span class="price-value">${winner.daily_rate.toLocaleString()} ₽/день</span>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+          ${winner.comment ? `
+            <div class="winner-comment">
+              <h5>💬 Комментарий:</h5>
+              <p>${winner.comment}</p>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    } else {
+      resultsHTML += `
+        <div class="no-winner-section">
+          <div class="no-winner-card">
+            <span class="no-winner-icon">❌</span>
+            <h4>Аукцион завершен без победителя</h4>
+            <p>К сожалению, на данный аукцион не было подано ни одной ставки.</p>
+          </div>
+        </div>
+      `;
+    }
+
+    if (statistics.total_bids > 0) {
+      resultsHTML += `
+        <div class="statistics-section">
+          <h4>📊 Статистика аукциона</h4>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-label">Всего ставок:</span>
+              <span class="stat-value">${statistics.total_bids}</span>
+            </div>
+            ${statistics.min_price ? `
+              <div class="stat-item">
+                <span class="stat-label">Минимальная цена:</span>
+                <span class="stat-value">${statistics.min_price.toLocaleString()} ₽</span>
+              </div>
+            ` : ''}
+            ${statistics.max_price ? `
+              <div class="stat-item">
+                <span class="stat-label">Максимальная цена:</span>
+                <span class="stat-value">${statistics.max_price.toLocaleString()} ₽</span>
+              </div>
+            ` : ''}
+            ${statistics.avg_price ? `
+              <div class="stat-item">
+                <span class="stat-label">Средняя цена:</span>
+                <span class="stat-value">${statistics.avg_price.toLocaleString()} ₽</span>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    content.innerHTML = resultsHTML;
+    showModal('auction-results-modal');
+
+  } catch (error) {
+    console.error('Ошибка загрузки результатов аукциона:', error);
+    alert('Ошибка загрузки результатов аукциона');
+  }
+};
+
 window.respondToOrder = async function(orderId) {
   try {
     // Получаем детали заявки
@@ -2140,6 +2281,13 @@ class RealTimeUpdater {
         `;
       }
 
+      // Добавляем класс для кликабельности завершенных аукционов
+      if (order.status === 'auction_closed') {
+        card.classList.add('clickable');
+        card.style.cursor = 'pointer';
+        card.onclick = () => showAuctionResults(order.id);
+      }
+
       card.innerHTML = `
         <h3>${order.equipment_type} - ${order.equipment_subtype}</h3>
         <div class="order-info">
@@ -2159,6 +2307,11 @@ class RealTimeUpdater {
           ${order.status === 'auction_active' && bidsInfo ? 
             `<span class="badge badge--info bids-counter ${bidsInfo.class}">
               ${bidsInfo.icon} ${bidsInfo.text}
+            </span>` : ''
+          }
+          ${order.status === 'auction_closed' ? 
+            `<span class="badge badge--secondary clickable-hint">
+              👁️ Нажмите для просмотра результатов
             </span>` : ''
           }
         </div>
