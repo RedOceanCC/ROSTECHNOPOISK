@@ -134,7 +134,7 @@ router.post('/test-notification', requireAuth, async (req, res) => {
     const NotificationService = require('../services/NotificationService');
     
     const success = await NotificationService.sendNotification(userId, {
-      type: 'test',
+      type: 'system',
       title: 'Тестовое уведомление',
       message: `Привет, ${user.name}! Это тестовое уведомление из системы РОСТЕХНОПОИСК.\n\nВаши уведомления настроены корректно! 🎉`
     });

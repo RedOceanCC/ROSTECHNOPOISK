@@ -2,6 +2,19 @@ const database = require('../models/Database');
 const NotificationLogger = require('../utils/notificationLogger');
 
 class NotificationService {
+  // Валидные типы уведомлений (должны соответствовать CHECK constraint в базе данных)
+  static VALID_NOTIFICATION_TYPES = [
+    'new_request', 'bid_accepted', 'bid_rejected', 'auction_closed', 
+    'bid_won', 'bid_lost', 'auction_no_bids', 'system', 'new_bid'
+  ];
+
+  // Валидация типа уведомления
+  static validateNotificationType(type) {
+    if (!this.VALID_NOTIFICATION_TYPES.includes(type)) {
+      throw new Error(`Недопустимый тип уведомления: '${type}'. Допустимые типы: ${this.VALID_NOTIFICATION_TYPES.join(', ')}`);
+    }
+  }
+
   // Создание уведомления
   static async sendNotification(userId, notificationData) {
     const startTime = Date.now();
@@ -10,6 +23,9 @@ class NotificationService {
       NotificationLogger.debug('Создание уведомления начато', { userId, type: notificationData.type });
       
       const { type, title, message } = notificationData;
+      
+      // Валидация типа уведомления
+      this.validateNotificationType(type);
       
       const sql = `
         INSERT INTO notifications (user_id, type, title, message)
