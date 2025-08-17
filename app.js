@@ -225,23 +225,23 @@ window.editCompany = function(companyId) {
   }
 };
 
-// Функция показа результатов аукциона
+// Функция показа результатов заявки
 window.showAuctionResults = async function(requestId) {
-  console.log(`🔍 Загружаем результаты аукциона #${requestId}...`);
+  console.log(`Загружаем результаты заявки #${requestId}...`);
   
   const response = await apiRequest(`/requests/${requestId}/results`);
-  console.log('📋 Ответ API:', response);
+  console.log('Ответ API:', response);
   
   if (!response.success) {
-    console.warn(`⚠️ Ошибка загрузки результатов: ${response.message}`);
+    console.warn(`Ошибка загрузки результатов: ${response.message}`);
     
-    // Если аукцион еще не завершен, показываем информативное сообщение
+    // Если заявка еще не завершена, показываем информативное сообщение
     if (response.message && response.message.includes('не завершен')) {
-      alert('⏳ Аукцион еще обрабатывается на сервере. Попробуйте через несколько секунд.');
+      alert('Заявка еще обрабатывается на сервере. Попробуйте через несколько секунд.');
       return;
     }
     
-    alert('Ошибка загрузки результатов аукциона: ' + (response.message || 'Неизвестная ошибка'));
+    alert('Ошибка загрузки результатов заявки: ' + (response.message || 'Неизвестная ошибка'));
     return;
   }
 
@@ -249,7 +249,7 @@ window.showAuctionResults = async function(requestId) {
   
   const modal = document.getElementById('auction-results-modal');
   if (!modal) {
-    console.error('Модальное окно результатов аукциона не найдено');
+    console.error('Модальное окно результатов заявки не найдено');
     return;
   }
 
@@ -257,12 +257,12 @@ window.showAuctionResults = async function(requestId) {
   
   let resultsHTML = `
     <div class="auction-results-header">
-      <h3>🏁 Результаты аукциона</h3>
+      <h3>Результаты заявки</h3>
       <div class="auction-info">
         <h4>${request.equipment_type} - ${request.equipment_subtype}</h4>
         <p><strong>Местоположение:</strong> ${request.location}</p>
         <p><strong>Период:</strong> ${formatDate(request.start_date)} - ${formatDate(request.end_date)}</p>
-        <p><strong>Завершен:</strong> ${new Date(request.auction_deadline).toLocaleString()}</p>
+        <p><strong>Завершена:</strong> ${new Date(request.auction_deadline).toLocaleString()}</p>
       </div>
     </div>
   `;
@@ -271,35 +271,34 @@ window.showAuctionResults = async function(requestId) {
     resultsHTML += `
       <div class="winner-section">
         <div class="winner-header">
-          <span class="winner-icon">🏆</span>
-          <h4>Победитель аукциона</h4>
+          <h4>Исполнитель</h4>
         </div>
         <div class="winner-contact-card">
           <div class="contact-info">
             <div class="contact-field">
-              <span class="contact-label">👤 Имя:</span>
+              <span class="contact-label">Имя:</span>
               <span class="contact-value">${winner.owner_name}</span>
             </div>
             <div class="contact-field">
-              <span class="contact-label">📞 Телефон:</span>
+              <span class="contact-label">Телефон:</span>
               <span class="contact-value">
                 <a href="tel:${winner.owner_phone}" class="phone-link">${winner.owner_phone}</a>
               </span>
             </div>
             ${winner.company_name ? `
               <div class="contact-field">
-                <span class="contact-label">🏢 Компания:</span>
+                <span class="contact-label">Компания:</span>
                 <span class="contact-value">${winner.company_name}</span>
               </div>
             ` : ''}
             <div class="contact-field">
-              <span class="contact-label">🚜 Техника:</span>
+              <span class="contact-label">Техника:</span>
               <span class="contact-value">${winner.equipment_name}</span>
             </div>
           </div>
           <div class="price-info">
             <div class="price-main">
-              <span class="price-label">💰 Итоговая цена:</span>
+              <span class="price-label">Итоговая цена:</span>
               <span class="price-value">${winner.total_price.toLocaleString()} ₽</span>
             </div>
             ${winner.hourly_rate ? `
@@ -318,7 +317,7 @@ window.showAuctionResults = async function(requestId) {
         </div>
         ${winner.comment ? `
           <div class="winner-comment">
-            <h5>💬 Комментарий:</h5>
+            <h5>Комментарий:</h5>
             <p>${winner.comment}</p>
           </div>
         ` : ''}
@@ -328,9 +327,8 @@ window.showAuctionResults = async function(requestId) {
     resultsHTML += `
       <div class="no-winner-section">
         <div class="no-winner-card">
-          <span class="no-winner-icon">❌</span>
-          <h4>Аукцион завершен без победителя</h4>
-          <p>К сожалению, на данный аукцион не было подано ни одной ставки.</p>
+          <h4>Заявка завершена без исполнителя</h4>
+          <p>К сожалению, на данную заявку не было подано ни одной ставки.</p>
         </div>
       </div>
     `;
@@ -339,7 +337,7 @@ window.showAuctionResults = async function(requestId) {
   if (statistics.total_bids > 0) {
     resultsHTML += `
       <div class="statistics-section">
-        <h4>📊 Статистика аукциона</h4>
+        <h4>Статистика заявки</h4>
         <div class="stats-grid">
           <div class="stat-item">
             <span class="stat-label">Всего ставок:</span>
@@ -1521,6 +1519,16 @@ function setupRespondOrderModal() {
   };
 }
 
+// Настройка модального окна результатов заявки
+function setupAuctionResultsModal() {
+  const modal = document.getElementById('auction-results-modal');
+  if (!modal) return;
+  
+  modal.querySelector('.modal-close').onclick = () => hideModal('auction-results-modal');
+  modal.querySelector('.modal-cancel').onclick = () => hideModal('auction-results-modal');
+  modal.querySelector('.modal-backdrop').onclick = () => hideModal('auction-results-modal');
+}
+
 function setupAddEquipmentModal() {
   const addBtn = document.getElementById('add-equipment-btn');
   const modal = document.getElementById('add-equipment-modal');
@@ -1815,13 +1823,13 @@ async function renderManagerOrders() {
           case 'auction_active':
             const bidsCount = order.bids_count || 0;
             bidsInfo = formatBidsCount(bidsCount);
-            statusText = `Аукцион активен`;
-            statusClass = 'pending';
-            break;
-          case 'auction_closed':
-            statusText = 'Аукцион завершен';
-            statusClass = 'available';
-            break;
+                      statusText = `Заявка активна`;
+          statusClass = 'pending';
+          break;
+        case 'auction_closed':
+          statusText = 'Заявка завершена';
+          statusClass = 'available';
+          break;
           case 'completed':
             statusText = 'Завершена';
             statusClass = 'busy';
@@ -1843,13 +1851,12 @@ async function renderManagerOrders() {
           winnerInfo = `
             <div class="winner-card">
               <div class="winner-header">
-                <span class="winner-icon">🏆</span>
-                <h4>Победитель аукциона</h4>
+                <h4>Исполнитель</h4>
               </div>
               <div class="winner-details">
                 <div class="winner-contact">
-                  <p><strong>👤 ${order.winning_owner_name}</strong></p>
-                  <p>📞 <a href="tel:${order.winning_owner_phone}">${order.winning_owner_phone}</a></p>
+                  <p><strong>${order.winning_owner_name}</strong></p>
+                  <p><a href="tel:${order.winning_owner_phone}">${order.winning_owner_phone}</a></p>
                 </div>
                 <div class="winner-price">
                   <span class="price-label">Цена:</span>
@@ -1861,7 +1868,7 @@ async function renderManagerOrders() {
         } else if (order.status === 'auction_closed') {
           winnerInfo = `
             <div class="no-winner-card">
-              <p>❌ Аукцион завершен без победителя</p>
+              <p>Заявка завершена без исполнителя</p>
             </div>
           `;
         }
@@ -1900,9 +1907,9 @@ async function renderManagerOrders() {
           activeClass: `auction-timer ${status.class}`,
           urgentClass: 'auction-timer urgent',
           expiredClass: 'auction-timer expired',
-          expiredText: '⏱️ Аукцион завершен'
+          expiredText: 'Заявка завершена'
           // Убираем onExpired чтобы избежать рекурсивных вызовов
-          // Автообновление будет обрабатывать завершенные аукционы
+          // Автообновление будет обрабатывать завершенные заявки
         });
     }
   });
@@ -2148,7 +2155,7 @@ class RealTimeUpdater {
         completedAuctions.forEach(order => {
           if (window.notificationCenter) {
             window.notificationCenter.addNotification({
-              title: '🏆 Аукцион завершен!',
+              title: 'Заявка завершена',
               message: `Заявка "${order.equipment_type} - ${order.equipment_subtype}" завершена. Победитель: ${order.winning_owner_name}. Цена: ${order.winning_price?.toLocaleString() || 'Не указана'} ₽`,
               type: 'auction',
               auctionId: order.id,
@@ -2183,7 +2190,7 @@ class RealTimeUpdater {
         completedAuctions.forEach(order => {
           if (window.notificationCenter) {
             window.notificationCenter.addNotification({
-              title: '🏆 Аукцион завершен!',
+              title: 'Заявка завершена',
               message: `Заявка "${order.equipment_type} - ${order.equipment_subtype}" завершена. Победитель: ${order.winning_owner_name}. Цена: ${order.winning_price?.toLocaleString() || 'Не указана'} ₽`,
               type: 'auction',
               auctionId: order.id,
@@ -2273,7 +2280,7 @@ class RealTimeUpdater {
           statusClass = 'pending';
           break;
         case 'auction_closed':
-          statusText = 'Аукцион завершен';
+          statusText = 'Заявка завершена';
           statusClass = 'available';
           break;
         case 'completed':
@@ -2297,13 +2304,12 @@ class RealTimeUpdater {
         winnerInfo = `
           <div class="winner-card">
             <div class="winner-header">
-              <span class="winner-icon">🏆</span>
-              <h4>Победитель аукциона</h4>
+              <h4>Исполнитель</h4>
             </div>
             <div class="winner-details">
               <div class="winner-contact">
-                <p><strong>👤 ${order.winning_owner_name}</strong></p>
-                <p>📞 <a href="tel:${order.winning_owner_phone}">${order.winning_owner_phone}</a></p>
+                <p><strong>${order.winning_owner_name}</strong></p>
+                <p><a href="tel:${order.winning_owner_phone}">${order.winning_owner_phone}</a></p>
               </div>
               <div class="winner-price">
                 <span class="price-label">Цена:</span>
@@ -2315,7 +2321,7 @@ class RealTimeUpdater {
       } else if (order.status === 'auction_closed') {
         winnerInfo = `
           <div class="no-winner-card">
-            <p>❌ Аукцион завершен без победителя</p>
+            <p>Заявка завершена без исполнителя</p>
           </div>
         `;
       }
@@ -2373,7 +2379,7 @@ class RealTimeUpdater {
             activeClass: `auction-timer ${status.class}`,
             urgentClass: 'auction-timer urgent',
             expiredClass: 'auction-timer expired',
-            expiredText: '⏱️ Аукцион завершен',
+            expiredText: 'Заявка завершена',
             onExpired: () => {
               this.handleExpiredAuction(card, order.id);
             }
@@ -2389,7 +2395,7 @@ class RealTimeUpdater {
       // Обновляем визуальное состояние карточки
       const statusBadge = card.querySelector('.badge--pending');
       if (statusBadge) {
-        statusBadge.textContent = 'Аукцион завершен';
+        statusBadge.textContent = 'Заявка завершена';
         statusBadge.className = 'badge badge--available';
       }
 
@@ -2711,6 +2717,12 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Инициализация системы уведомлений
   initializeNotifications();
+
+  // Инициализация модальных окон
+  setupCreateUserModal();
+  setupEditUserModal();
+  setupCreateCompanyModal();
+  setupAuctionResultsModal();
 
   // Добавляем демо уведомления для тестирования (только в dev-режиме)
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {

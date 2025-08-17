@@ -5,7 +5,7 @@ const logger = require('../utils/logger');
 class AuctionManager {
   constructor() {
     this.isRunning = false;
-    this.checkInterval = 5000; // Проверять каждые 5 секунд для демо-аукционов
+    this.checkInterval = 2000; // Проверять каждые 5 секунд для демо-аукционов
     this.intervalId = null;
   }
 
