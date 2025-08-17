@@ -413,7 +413,13 @@ class TelegramWebApp {
         // Отправляем уведомление менеджеру
         const request = await RentalRequest.findById(requestId);
         if (request) {
-          await NotificationService.notifyNewBid(request.manager_id, requestId, user.name);
+          await NotificationService.notifyNewBid(
+            request.manager_id, 
+            requestId, 
+            user.name, 
+            totalPrice, 
+            `${request.equipment_type} - ${request.equipment_subtype}`
+          );
         }
 
         res.json({ success: true, bid });

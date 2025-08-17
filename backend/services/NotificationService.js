@@ -292,6 +292,78 @@ class NotificationService {
       throw error;
     }
   }
+
+  // Специализированные методы уведомлений
+  
+  // Уведомление о новой ставке
+  static async notifyNewBid(managerId, requestId, bidderName, totalPrice, equipmentInfo) {
+    try {
+      return await this.sendNotification(managerId, {
+        type: 'new_bid',
+        title: '🔔 Новая ставка!',
+        message: `Пользователь ${bidderName} подал ставку на заявку "${equipmentInfo}". Общая стоимость: ${totalPrice ? totalPrice.toLocaleString() + ' ₽' : 'не указана'}`
+      });
+    } catch (error) {
+      console.error('❌ Ошибка при отправке уведомления о новой ставке:', error);
+      throw error;
+    }
+  }
+
+  // Уведомление о новой заявке для владельцев
+  static async notifyNewRequest(ownerIds, requestData) {
+    try {
+      const notificationData = {
+        type: 'new_request',
+        title: '🚜 Новая заявка!',
+        message: `Поступила заявка на ${requestData.equipment_type} - ${requestData.equipment_subtype}. Период: ${requestData.start_date} - ${requestData.end_date}. Местоположение: ${requestData.location}`
+      };
+
+      return await this.sendBulkNotifications(ownerIds, notificationData);
+    } catch (error) {
+      console.error('❌ Ошибка при отправке уведомлений о новой заявке:', error);
+      throw error;
+    }
+  }
+
+  // Уведомление о завершении аукциона
+  static async notifyAuctionClosed(managerId, requestData, winnerData) {
+    try {
+      const message = winnerData 
+        ? `Аукцион по заявке "${requestData.equipment_type} - ${requestData.equipment_subtype}" завершен. Победитель: ${winnerData.name}. Цена: ${winnerData.price ? winnerData.price.toLocaleString() + ' ₽' : 'не указана'}`
+        : `Аукцион по заявке "${requestData.equipment_type} - ${requestData.equipment_subtype}" завершен без победителя.`;
+
+      return await this.sendNotification(managerId, {
+        type: 'auction_closed',
+        title: '🏆 Аукцион завершен!',
+        message
+      });
+    } catch (error) {
+      console.error('❌ Ошибка при отправке уведомления о завершении аукциона:', error);
+      throw error;
+    }
+  }
+
+  // Уведомление о принятии/отклонении ставки
+  static async notifyBidStatus(ownerId, requestData, status, reason = null) {
+    try {
+      const isAccepted = status === 'accepted';
+      const title = isAccepted ? '✅ Ставка принята!' : '❌ Ставка отклонена';
+      let message = `Ваша ставка на заявку "${requestData.equipment_type} - ${requestData.equipment_subtype}" ${isAccepted ? 'принята' : 'отклонена'}.`;
+      
+      if (!isAccepted && reason) {
+        message += ` Причина: ${reason}`;
+      }
+
+      return await this.sendNotification(ownerId, {
+        type: isAccepted ? 'bid_accepted' : 'bid_rejected',
+        title,
+        message
+      });
+    } catch (error) {
+      console.error('❌ Ошибка при отправке уведомления о статусе ставки:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = NotificationService;
