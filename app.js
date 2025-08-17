@@ -22,16 +22,32 @@ async function apiRequest(endpoint, options = {}) {
   };
 
   try {
+    console.log(`🌐 API запрос: ${options.method || 'GET'} ${url}`);
+    
     const response = await fetch(url, config);
+    
+    console.log(`📡 Ответ сервера: ${response.status} ${response.statusText}`);
+    
+    // Проверяем, является ли ответ JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error('❌ Сервер вернул не JSON:', text);
+      throw new Error(`Сервер вернул ${response.status}: ${text.substring(0, 200)}`);
+    }
+    
     const data = await response.json();
+    console.log('📋 Данные ответа:', data);
     
     if (!response.ok) {
-      throw new Error(data.message || 'Ошибка API');
+      throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`);
     }
     
     return data;
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('❌ API Error:', error);
+    console.error('❌ URL:', url);
+    console.error('❌ Config:', config);
     throw error;
   }
 }
@@ -192,21 +208,34 @@ window.editCompany = function(companyId) {
 // Функция показа результатов аукциона
 window.showAuctionResults = async function(requestId) {
   try {
+    console.log(`🔍 Загружаем результаты аукциона #${requestId}...`);
+    
     const response = await apiRequest(`/requests/${requestId}/results`);
+    console.log('📋 Ответ API:', response);
+    
     if (!response.success) {
+      console.warn(`⚠️ Аукцион не завершен: ${response.message}`);
+      
       // Если аукцион еще не закрыт, попробуем его закрыть принудительно
-      if (response.message.includes('не завершен')) {
+      if (response.message && response.message.includes('не завершен')) {
+        console.log('🔄 Пытаемся принудительно закрыть аукцион...');
+        
         const closeResponse = await apiRequest(`/requests/${requestId}/close-auction`, {
           method: 'POST'
         });
         
+        console.log('📋 Результат закрытия:', closeResponse);
+        
         if (closeResponse.success) {
           alert('Аукцион закрыт. Обновите страницу для просмотра результатов.');
+          return;
+        } else {
+          alert('❌ Не удалось закрыть аукцион: ' + (closeResponse.message || 'Неизвестная ошибка'));
           return;
         }
       }
       
-      alert('Ошибка загрузки результатов аукциона: ' + response.message);
+      alert('Ошибка загрузки результатов аукциона: ' + (response.message || 'Неизвестная ошибка'));
       return;
     }
 
@@ -337,8 +366,18 @@ window.showAuctionResults = async function(requestId) {
     showModal('auction-results-modal');
 
   } catch (error) {
-    console.error('Ошибка загрузки результатов аукциона:', error);
-    alert('Ошибка загрузки результатов аукциона');
+    console.error('❌ Ошибка загрузки результатов аукциона:', error);
+    console.error('❌ Stack trace:', error.stack);
+    
+    // Более детальная информация об ошибке
+    let errorMessage = 'Неизвестная ошибка';
+    if (error.message) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    }
+    
+    alert(`❌ Ошибка загрузки результатов аукциона: ${errorMessage}`);
   }
 };
 
