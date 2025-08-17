@@ -1,4 +1,5 @@
 const database = require('./Database');
+const { ValidationError, BusinessLogicError, NotFoundError } = require('../utils/errors');
 
 class RentalBid {
   // Создание ставки на аукцион
@@ -17,11 +18,11 @@ class RentalBid {
     const request = await database.get(requestSQL, [request_id]);
     
     if (!request) {
-      throw new Error('Аукцион не найден или уже закрыт');
+      throw new NotFoundError('Аукцион не найден или уже закрыт');
     }
     
     if (new Date(request.auction_deadline) < new Date()) {
-      throw new Error('Время подачи ставок истекло');
+      throw new BusinessLogicError('Время подачи ставок истекло');
     }
     
     // Проверяем, что владелец еще не подавал ставку
@@ -33,7 +34,7 @@ class RentalBid {
     const existingBid = await database.get(existingBidSQL, [request_id, owner_id]);
     
     if (existingBid) {
-      throw new Error('Вы уже подали ставку на этот аукцион');
+      throw new BusinessLogicError('Вы уже подали ставку на этот аукцион');
     }
     
     const sql = `

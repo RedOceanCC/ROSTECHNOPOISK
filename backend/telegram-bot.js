@@ -422,10 +422,40 @@ class TelegramWebApp {
           );
         }
 
-        res.json({ success: true, bid });
+        res.json({ 
+          success: true, 
+          bid,
+          message: 'Ставка успешно подана!'
+        });
       } catch (error) {
         console.error('Ошибка при подаче ставки:', error);
-        res.status(500).json({ error: error.message });
+        
+        // Определяем статус ответа на основе типа ошибки
+        let statusCode = 500;
+        let userMessage = error.message;
+        
+        if (error.statusCode) {
+          statusCode = error.statusCode;
+        }
+        
+        // Более понятные сообщения для пользователей
+        if (error.name === 'BusinessLogicError') {
+          switch (error.message) {
+            case 'Вы уже подали ставку на этот аукцион':
+              userMessage = 'Вы уже подали ставку на этот аукцион. Каждый участник может подать только одну ставку.';
+              break;
+            case 'Время подачи ставок истекло':
+              userMessage = 'К сожалению, время подачи ставок на этот аукцион истекло.';
+              break;
+            default:
+              userMessage = error.message;
+          }
+        }
+        
+        res.status(statusCode).json({ 
+          success: false,
+          error: userMessage 
+        });
       }
     });
 

@@ -1246,11 +1246,8 @@ async function renderOwnerOrders() {
         activeClass: `auction-timer ${status.class}`,
         urgentClass: 'auction-timer urgent',
         expiredClass: 'auction-timer expired',
-        expiredText: '⏱️ Время истекло',
-        onExpired: () => {
-          // Перерендерим карточки при истечении времени
-          setTimeout(() => renderOwnerOrders(), 1000);
-        }
+        expiredText: '⏱️ Время истекло'
+        // Убираем onExpired чтобы избежать рекурсивных вызовов
       });
     }
   });
@@ -1878,11 +1875,11 @@ class RealTimeUpdater {
 
   // Автообновление для владельцев
   startOwnerUpdates() {
-    // Обновляем заявки каждые 30 секунд и проверяем новые
+    // Обновляем заявки каждые 30 секунд (оптимизировано) и проверяем новые
     const ordersInterval = setInterval(async () => {
       if (this.isActive && document.getElementById('owner-orders-tab')?.classList.contains('active')) {
-        await this.checkForNewOwnerOrders();
-        renderOwnerOrders();
+        // Объединяем проверку и рендеринг в один запрос
+        await this.updateOwnerOrdersWithNotifications();
       }
     }, 30000);
     this.intervals.set('owner-orders', ordersInterval);
@@ -2025,6 +2022,42 @@ class RealTimeUpdater {
     }
   }
 
+  // Оптимизированный метод для владельцев - один запрос вместо двух
+  async updateOwnerOrdersWithNotifications() {
+    if (!this.lastOrderCheck) {
+      this.lastOrderCheck = new Date();
+    }
+
+    try {
+      const response = await apiRequest('/requests');
+      if (response.success) {
+        // Проверяем новые заявки для уведомлений
+        const newOrders = response.requests.filter(order => {
+          const orderDate = new Date(order.created_at);
+          return orderDate > this.lastOrderCheck;
+        });
+
+        newOrders.forEach(order => {
+          if (window.notificationCenter) {
+            window.notificationCenter.addNotification({
+              title: '🚜 Новая заявка!',
+              message: `Поступила заявка на ${order.equipment_type} - ${order.equipment_subtype}. Период: ${formatDate(order.start_date)} - ${formatDate(order.end_date)}`,
+              type: 'request',
+              requestId: order.id
+            });
+          }
+        });
+
+        this.lastOrderCheck = new Date();
+        
+        // Рендерим заявки (используем уже полученные данные)
+        this.renderOwnerOrdersFromData(response.requests);
+      }
+    } catch (error) {
+      console.error('Ошибка обновления заявок владельца:', error);
+    }
+  }
+
   // Рендеринг заявок из уже полученных данных
   renderManagerOrdersFromData(userOrders) {
     const grid = document.getElementById('manager-orders-grid');
@@ -2142,6 +2175,69 @@ class RealTimeUpdater {
           urgentClass: 'auction-timer urgent',
           expiredClass: 'auction-timer expired',
           expiredText: '⏱️ Аукцион завершен'
+          // Убираем onExpired чтобы избежать рекурсивных вызовов
+        });
+      }
+    });
+  }
+
+  // Рендеринг заявок владельца из уже полученных данных
+  renderOwnerOrdersFromData(relevantOrders) {
+    const grid = document.getElementById('owner-orders-grid');
+    if (!grid) return;
+
+    if (relevantOrders.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-state">
+          <h3>Нет подходящих заявок</h3>
+          <p>Заявки, подходящие под вашу технику, появятся здесь</p>
+        </div>
+      `;
+      return;
+    }
+
+    grid.innerHTML = '';
+    relevantOrders.forEach(order => {
+      const card = document.createElement('div');
+      card.className = 'order-card';
+          
+      const deadline = order.auction_deadline;
+      const timerId = `owner-timer-${order.id}`;
+      const timeLeft = deadline ? Math.max(0, new Date(deadline) - new Date()) : 0;
+      
+      card.innerHTML = `
+        <h3>Заявка на ${order.equipment_type}</h3>
+        <div class="order-info">
+          <p><strong>Подтип:</strong> ${order.equipment_subtype}</p>
+          <p><strong>Период:</strong> ${formatDate(order.start_date)} - ${formatDate(order.end_date)}</p>
+          <p><strong>Местоположение:</strong> ${order.location}</p>
+          <p><strong>Описание:</strong> ${order.work_description}</p>
+          <p><strong>Заказчик:</strong> ${order.manager_name || 'Неизвестно'}</p>
+          ${deadline ? `<p><strong>До окончания:</strong> <span id="${timerId}" class="auction-timer">Загрузка...</span></p>` : ''}
+        </div>
+        <div class="order-badges">
+          <span class="badge badge--${order.has_bid ? 'available' : 'pending'}">
+            ${order.has_bid ? 'Ставка подана' : 'Можно подать ставку'}
+          </span>
+        </div>
+        <div class="order-actions">
+          ${!order.has_bid && timeLeft > 0 ? `
+          <button class="btn btn--primary btn--sm" onclick="respondToOrder(${order.id})">
+              Подать ставку
+          </button>
+          ` : ''}
+          ${order.has_bid ? '<p style="color: var(--muted-foreground); font-size: 12px;">Ваша ставка принята к рассмотрению</p>' : ''}
+        </div>
+      `;
+
+      grid.appendChild(card);
+
+      // Запускаем таймер для этой заявки, если нужно
+      if (deadline && timeLeft > 0) {
+        auctionTimer.createTimer(timerId, deadline, {
+          activeClass: 'timer-active',
+          urgentClass: 'timer-urgent',
+          expiredText: '⏱️ Время истекло'
           // Убираем onExpired чтобы избежать рекурсивных вызовов
         });
       }
