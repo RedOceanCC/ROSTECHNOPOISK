@@ -26,7 +26,7 @@ class TelegramWebApp {
     try {
       this.bot = new TelegramBot(token, { 
         polling: {
-          interval: 2000,    // Увеличиваем интервал polling
+          interval: 2000,
           autoStart: true,
           params: {
             timeout: 10
@@ -40,7 +40,6 @@ class TelegramWebApp {
           console.log('⚠️  Обнаружен конфликт множественных экземпляров бота - останавливаем polling');
           this.bot.stopPolling();
           
-          // Пытаемся перезапустить через 30 секунд
           setTimeout(() => {
             console.log('🔄 Пытаемся перезапустить бота...');
             try {
@@ -68,7 +67,6 @@ class TelegramWebApp {
       const userId = msg.from.id;
       
       try {
-        // Проверяем, есть ли пользователь в системе
         const user = await this.findUserByTelegramId(userId);
         
         if (user) {
@@ -186,7 +184,7 @@ class TelegramWebApp {
 
       let message = '📋 Ваши заявки:\n\n';
       
-      for (const bid of bids.slice(0, 10)) { // Показываем последние 10
+      for (const bid of bids.slice(0, 10)) {
         const statusEmoji = {
           'pending': '⏳',
           'accepted': '✅',
@@ -335,8 +333,35 @@ class TelegramWebApp {
         'other': 'Другие причины'
       };
 
-      // Логируем отклонение в базе данных (можно создать отдельную таблицу)
-      console.log(`Заявка ${requestId} отклонена пользователем ${userId}. Причина: ${reasonTexts[reason]}`);
+      // Получаем данные пользователя
+      const user = await this.findUserByTelegramId(userId);
+      if (!user) {
+        await this.bot.sendMessage(chatId, 'Ошибка: пользователь не найден');
+        return;
+      }
+
+      // Сохраняем отклонение в базу данных
+      try {
+        const declineSQL = `
+          INSERT INTO request_declines (request_id, owner_id, reason, created_at)
+          VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+        `;
+        await Database.run(declineSQL, [requestId, user.id, reasonTexts[reason]]);
+      } catch (dbError) {
+        // Если таблица не существует, просто логируем
+        console.log(`Заявка ${requestId} отклонена пользователем ${user.name} (ID: ${user.id}). Причина: ${reasonTexts[reason]}`);
+      }
+
+      // Отправляем системное уведомление
+      try {
+        await NotificationService.sendNotification(user.id, {
+          type: 'system',
+          title: 'Заявка отклонена',
+          message: `Вы отклонили заявку #${requestId}. Причина: ${reasonTexts[reason]}`
+        });
+      } catch (notificationError) {
+        console.error('Ошибка сохранения уведомления об отклонении:', notificationError);
+      }
       
       await this.bot.sendMessage(chatId, 
         `✅ Заявка отклонена.\n\nПричина: ${reasonTexts[reason]}\n\nСпасибо за ответ!`
@@ -348,7 +373,6 @@ class TelegramWebApp {
   }
 
   setupWebApp() {
-    // Не создаем отдельный сервер, используем главный app
     console.log('Telegram WebApp интегрирован в основной сервер');
   }
 
@@ -385,7 +409,6 @@ class TelegramWebApp {
         }
 
         // Проверяем партнерские отношения
-        const Database = require('./models/Database');
         const partnershipSQL = `
           SELECT cp.id
           FROM company_partnerships cp
@@ -568,7 +591,6 @@ class TelegramWebApp {
         }
 
         // Сохраняем отклонение в базу данных
-        const Database = require('./models/Database');
         const declineSQL = `
           INSERT INTO request_declines (request_id, owner_id, reason, created_at)
           VALUES (?, ?, ?, CURRENT_TIMESTAMP)
@@ -595,18 +617,21 @@ class TelegramWebApp {
     });
   }
 
-  // Отправка уведомления о новой заявке
+  // Отправка уведомления о новой заявке - ОПТИМИЗИРОВАННЫЙ МЕТОД
   async notifyNewRequest(requestId) {
     try {
       const request = await RentalRequest.findById(requestId);
-      if (!request) return;
+      if (!request) {
+        console.error('Заявка не найдена:', requestId);
+        return;
+      }
 
-      // Находим технику подходящего типа с указанным telegram_id
+      // Находим владельцев подходящей техники с Telegram ID
       const sql = `
-        SELECT DISTINCT e.telegram_id, e.owner_id, e.name as equipment_name,
-               u.name as owner_name
-        FROM equipment e
-        JOIN users u ON e.owner_id = u.id
+        SELECT DISTINCT u.id as owner_id, u.name as owner_name, u.telegram_id,
+               e.id as equipment_id, e.name as equipment_name
+        FROM users u
+        JOIN equipment e ON u.id = e.owner_id
         JOIN companies c ON u.company_id = c.id
         JOIN company_partnerships cp ON c.id = cp.owner_company_id
         JOIN users m ON m.company_id = cp.manager_company_id
@@ -614,66 +639,99 @@ class TelegramWebApp {
           AND e.type = ? 
           AND e.subtype = ?
           AND e.status = 'available'
-          AND e.telegram_id IS NOT NULL
-          AND e.telegram_id != ''
+          AND u.telegram_id IS NOT NULL
+          AND u.telegram_id != ''
           AND u.role = 'owner'
           AND u.status = 'active'
           AND c.status = 'active'
           AND cp.status = 'active'
       `;
 
-      const equipmentList = await Database.all(sql, [
+      const ownersList = await Database.all(sql, [
         request.manager_id, 
         request.equipment_type, 
         request.equipment_subtype
       ]);
 
-      for (const equipment of equipmentList) {
-        const webAppUrl = `${process.env.WEB_APP_URL || 'http://localhost:3001'}/telegram/request.html?requestId=${requestId}&equipmentId=${equipment.owner_id}&telegramId=${equipment.telegram_id}`;
-        
-        const keyboard = {
-          inline_keyboard: [[
-            { 
-              text: '📝 Подать заявку', 
-              web_app: { url: webAppUrl }
-            },
-            { 
-              text: '❌ Отклонить', 
-              callback_data: `decline_${requestId}`
-            }
-          ]]
-        };
+      if (ownersList.length === 0) {
+        console.warn(`Нет владельцев с подходящей техникой для заявки ${requestId}`);
+        return;
+      }
 
-        const message = `
-🆕 *Новая заявка на вашу технику!*
+      let successCount = 0;
+      let errorCount = 0;
 
-🚜 *Техника:* ${equipment.equipment_name}
-🏷️ *Тип:* ${request.equipment_type} - ${request.equipment_subtype}
-📍 *Место работы:* ${request.location}
-📅 *Период:* ${request.start_date} - ${request.end_date}
-📋 *Описание:* ${request.work_description}
-💰 *Бюджет:* ${request.budget_range || 'Не указан'}
-
-⏰ *Время на подачу заявки:* до ${new Date(request.auction_deadline).toLocaleString('ru-RU')}
-
-Нажмите "Подать заявку" чтобы указать цену или "Отклонить" если не можете участвовать.
-        `;
-
+      for (const owner of ownersList) {
         try {
-          await this.bot.sendMessage(equipment.telegram_id, message, {
-            parse_mode: 'Markdown',
-            reply_markup: keyboard
-          });
-          console.log(`Уведомление отправлено владельцу техники ${equipment.equipment_name} (${equipment.telegram_id})`);
+          await this.sendRequestNotificationToOwner(request, owner);
+          successCount++;
         } catch (sendError) {
-          console.error(`Ошибка отправки сообщения в Telegram ID ${equipment.telegram_id}:`, sendError.message);
+          errorCount++;
+          console.error(`Ошибка отправки уведомления владельцу ${owner.owner_name} (${owner.telegram_id}):`, sendError.message);
         }
       }
 
-      console.log(`Отправлено ${equipmentList.length} уведомлений по заявке ${requestId}`);
+      console.log(`Уведомления по заявке ${requestId}: ${successCount} успешно, ${errorCount} ошибок`);
+      
+      // Сохраняем статистику уведомлений
+      try {
+        await NotificationService.sendBulkNotifications(
+          ownersList.map(o => o.owner_id),
+          {
+            type: 'new_request',
+            title: '🆕 Новая заявка!',
+            message: `Поступила заявка на ${request.equipment_type} - ${request.equipment_subtype}. Период: ${request.start_date} - ${request.end_date}. Место: ${request.location}`
+          }
+        );
+      } catch (notificationError) {
+        console.error('Ошибка сохранения уведомлений в базу:', notificationError);
+      }
     } catch (error) {
       console.error('Ошибка при отправке уведомлений:', error);
     }
+  }
+
+  // Отправка уведомления конкретному владельцу
+  async sendRequestNotificationToOwner(request, owner) {
+    if (!this.bot) {
+      throw new Error('Бот не инициализирован');
+    }
+
+    const webAppUrl = `${process.env.WEB_APP_URL || 'http://localhost:3001'}/telegram/request.html?requestId=${request.id}&equipmentId=${owner.equipment_id}&telegramId=${owner.telegram_id}`;
+    
+    const keyboard = {
+      inline_keyboard: [[
+        { 
+          text: '📝 Подать заявку', 
+          web_app: { url: webAppUrl }
+        },
+        { 
+          text: '❌ Отклонить', 
+          callback_data: `decline_${request.id}`
+        }
+      ]]
+    };
+
+    const timeLeft = this.getTimeLeft(new Date(request.auction_deadline));
+    const message = `🆕 *Новая заявка на вашу технику!*
+
+🚜 *Техника:* ${owner.equipment_name}
+🏷️ *Тип:* ${request.equipment_type} - ${request.equipment_subtype}
+📍 *Место работы:* ${request.location}
+📅 *Период:* ${request.start_date} - ${request.end_date}
+📋 *Описание:* ${request.work_description.substring(0, 200)}${request.work_description.length > 200 ? '...' : ''}
+💰 *Бюджет:* ${request.budget_range || 'Не указан'}
+
+⏰ *Осталось времени:* ${timeLeft}
+
+Нажмите "Подать заявку" чтобы указать цену или "Отклонить" если не можете участвовать.`;
+
+    await this.bot.sendMessage(owner.telegram_id, message, {
+      parse_mode: 'Markdown',
+      reply_markup: keyboard
+    });
+
+    console.log(`✅ Уведомление отправлено: ${owner.owner_name} (${owner.telegram_id})`);
   }
 
   // Вспомогательные методы
@@ -681,7 +739,6 @@ class TelegramWebApp {
     return await TelegramWebApp.findUserByTelegramId(telegramId);
   }
 
-  // Статический метод для поиска пользователя
   static async findUserByTelegramId(telegramId) {
     try {
       const sql = 'SELECT * FROM users WHERE telegram_id = ? AND status = "active"';

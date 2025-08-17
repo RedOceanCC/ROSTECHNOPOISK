@@ -314,6 +314,10 @@
                     throw new Error(data.error || 'Ошибка загрузки данных');
                 }
 
+                if (!data.success) {
+                    throw new Error(data.error || 'Неизвестная ошибка');
+                }
+
                 requestData = data.request;
                 equipmentList = data.equipment;
 
@@ -447,7 +451,11 @@
                     throw new Error(result.error || 'Ошибка при подаче заявки');
                 }
 
-                tg.showAlert('Заявка успешно подана!', () => {
+                if (!result.success) {
+                    throw new Error(result.error || 'Неизвестная ошибка');
+                }
+
+                tg.showAlert('✅ ' + (result.message || 'Ставка подана успешно!'), () => {
                     tg.close();
                 });
             } catch (error) {
@@ -501,3 +509,4 @@
     </script>
 </body>
 </html>
+
