@@ -39,8 +39,15 @@ async function apiRequest(endpoint, options = {}) {
     const data = await response.json();
     console.log('📋 Данные ответа:', data);
     
+    // Для неудачных запросов возвращаем данные с информацией об ошибке
+    // вместо броска исключения, чтобы вызывающий код мог обработать ошибку
     if (!response.ok) {
-      throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`);
+      return {
+        success: false,
+        status: response.status,
+        message: data.message || `HTTP ${response.status}: ${response.statusText}`,
+        ...data
+      };
     }
     
     return data;
