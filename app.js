@@ -184,6 +184,7 @@ window.editUser = async function(userId) {
     document.getElementById('edit-user-telegram-id').value = user.telegram_id || '';
     document.getElementById('edit-user-role').value = user.role;
     document.getElementById('edit-user-company').value = user.company_id || '';
+    document.getElementById('edit-user-status').value = user.status || 'active';
     document.getElementById('edit-user-password').value = '';
     
     // Загружаем список компаний и открываем модал
@@ -552,7 +553,7 @@ async function initAdminDashboard() {
 
 async function renderUsersTable() {
   const tbody = document.getElementById('users-table-body');
-  tbody.innerHTML = '<tr><td colspan="6">Загрузка...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7">Загрузка...</td></tr>';
   
   try {
     const response = await apiRequest('/users');
@@ -561,12 +562,17 @@ async function renderUsersTable() {
       
       response.users.forEach(user => {
         const row = document.createElement('tr');
+        const statusLabel = user.status === 'active' ? 
+          '<span class="badge badge--success">Активный</span>' : 
+          '<span class="badge badge--danger">Заблокированный</span>';
+        
         row.innerHTML = `
           <td>${user.id}</td>
           <td>${user.name}</td>
           <td>${getRoleLabel(user.role)}</td>
           <td>${user.company_name || 'Не назначена'}</td>
           <td>${user.telegram_id || '<span class="text-muted">Не указан</span>'}</td>
+          <td>${statusLabel}</td>
           <td>
             <button class="btn btn--secondary btn--small" onclick="editUser(${user.id})" style="margin-right: 8px;">
               Редактировать
@@ -580,7 +586,7 @@ async function renderUsersTable() {
       });
     }
   } catch (error) {
-    tbody.innerHTML = `<tr><td colspan="6">Ошибка загрузки: ${error.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7">Ошибка загрузки: ${error.message}</td></tr>`;
   }
 }
 
@@ -654,19 +660,24 @@ function setupEditUserModal() {
       phone: document.getElementById('edit-user-phone').value || null,
       telegram_id: document.getElementById('edit-user-telegram-id').value || null,
       role: document.getElementById('edit-user-role').value,
-      company_id: parseInt(document.getElementById('edit-user-company').value) || null
+      company_id: parseInt(document.getElementById('edit-user-company').value) || null,
+      status: document.getElementById('edit-user-status').value
     };
     
     const password = document.getElementById('edit-user-password').value;
-    if (password) {
+    if (password && password.trim()) {
       userData.password = password;
     }
     
     try {
-      await apiRequest(`/users/${userId}`, {
+      const response = await apiRequest(`/users/${userId}`, {
         method: 'PUT',
         body: JSON.stringify(userData)
       });
+      
+      if (!response.success) {
+        throw new Error(response.message);
+      }
       
       await renderUsersTable();
       hideModal('edit-user-modal');

@@ -76,6 +76,7 @@
                                         <th>Роль</th>
                                         <th>Компания</th>
                                         <th>Telegram ID</th>
+                                        <th>Статус</th>
                                         <th>Действия</th>
                                     </tr>
                                 </thead>
@@ -436,6 +437,13 @@
                         <select id="edit-user-company" class="form-control" required>
                             <option value="">Выберите компанию</option>
                             <!-- Будет заполнено динамически -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Статус</label>
+                        <select id="edit-user-status" class="form-control" required>
+                            <option value="active">Активный</option>
+                            <option value="inactive">Заблокированный</option>
                         </select>
                     </div>
                     <div class="form-group">

@@ -1292,6 +1292,11 @@ body {
   color: #3b82f6;
 }
 
+.badge--danger {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
 /* Счетчик ставок */
 .bids-counter {
   font-weight: 600;

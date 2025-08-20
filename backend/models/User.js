@@ -66,7 +66,6 @@ class User {
              c.name as company_name
       FROM users u 
       LEFT JOIN companies c ON u.company_id = c.id 
-      WHERE u.status = 'active'
       ORDER BY u.created_at DESC
     `;
     
@@ -111,15 +110,58 @@ class User {
 
   // Обновление пользователя
   static async update(id, userData) {
-    const { name, phone, telegram_id, company_id, status } = userData;
+    const { name, phone, telegram_id, company_id, status, role, password } = userData;
     
-    const sql = `
-      UPDATE users 
-      SET name = ?, phone = ?, telegram_id = ?, company_id = ?, status = ?
-      WHERE id = ?
-    `;
+    // Получаем текущие данные пользователя
+    const currentUser = await database.get('SELECT * FROM users WHERE id = ?', [id]);
+    if (!currentUser) {
+      throw new Error('Пользователь не найден');
+    }
     
-    await database.run(sql, [name, phone, telegram_id, company_id, status, id]);
+    // Подготавливаем данные для обновления
+    const updateFields = [];
+    const updateValues = [];
+    
+    if (name !== undefined) {
+      updateFields.push('name = ?');
+      updateValues.push(name);
+    }
+    if (phone !== undefined) {
+      updateFields.push('phone = ?');
+      updateValues.push(phone);
+    }
+    if (telegram_id !== undefined) {
+      updateFields.push('telegram_id = ?');
+      updateValues.push(telegram_id);
+    }
+    if (company_id !== undefined) {
+      updateFields.push('company_id = ?');
+      updateValues.push(company_id);
+    }
+    if (status !== undefined) {
+      updateFields.push('status = ?');
+      updateValues.push(status);
+    }
+    if (role !== undefined) {
+      updateFields.push('role = ?');
+      updateValues.push(role);
+    }
+    if (password !== undefined && password.trim()) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateFields.push('password = ?');
+      updateValues.push(hashedPassword);
+    }
+    
+    // Если нет полей для обновления, просто возвращаем пользователя
+    if (updateFields.length === 0) {
+      return this.findById(id);
+    }
+    
+    updateValues.push(id);
+    
+    const sql = `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`;
+    await database.run(sql, updateValues);
+    
     return this.findById(id);
   }
 
