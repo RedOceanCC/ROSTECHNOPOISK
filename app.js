@@ -3314,42 +3314,27 @@ function updateEquipmentTypeChange() {
 function setupTypesManagementInModal() {
   console.log('Настройка управления типами в модальном окне...');
   
-  // Кнопка "Управление типами"
-  const manageTypesBtn = document.getElementById('manage-types-btn');
-  console.log('Кнопка управления типами в модальном окне:', manageTypesBtn);
-  if (manageTypesBtn && !manageTypesBtn.onclick) {
-    manageTypesBtn.onclick = (e) => {
-      e.preventDefault();
-      console.log('Клик по кнопке управления типами');
-      showModal('manage-types-modal', loadTypesManagement);
-    };
-    console.log('Обработчик для кнопки управления типами установлен');
-  }
-
-  // Кнопки быстрого добавления
-  const addNewTypeBtn = document.getElementById('add-new-type-btn');
-  const addNewSubtypeBtn = document.getElementById('add-new-subtype-btn');
+  // Убираем старые обработчики, если есть
+  const buttons = [
+    { id: 'manage-types-btn', handler: handleManageTypesClick },
+    { id: 'add-new-type-btn', handler: handleAddNewTypeClick },
+    { id: 'add-new-subtype-btn', handler: handleAddNewSubtypeClick }
+  ];
   
-  console.log('Кнопка добавления типа в модальном окне:', addNewTypeBtn);
-  console.log('Кнопка добавления подтипа в модальном окне:', addNewSubtypeBtn);
-  
-  if (addNewTypeBtn && !addNewTypeBtn.onclick) {
-    addNewTypeBtn.onclick = (e) => {
-      e.preventDefault();
-      console.log('Клик по кнопке добавления типа');
-      showQuickAddTypeModal();
-    };
-    console.log('Обработчик для кнопки добавления типа установлен');
-  }
-  
-  if (addNewSubtypeBtn && !addNewSubtypeBtn.onclick) {
-    addNewSubtypeBtn.onclick = (e) => {
-      e.preventDefault();
-      console.log('Клик по кнопке добавления подтипа');
-      showQuickAddSubtypeModal();
-    };
-    console.log('Обработчик для кнопки добавления подтипа установлен');
-  }
+  buttons.forEach(({ id, handler }) => {
+    const btn = document.getElementById(id);
+    console.log(`Настройка кнопки ${id}:`, btn);
+    
+    if (btn) {
+      // Убираем старые обработчики
+      btn.removeEventListener('click', handler);
+      // Добавляем новый
+      btn.addEventListener('click', handler);
+      console.log(`Обработчик для ${id} установлен`);
+    } else {
+      console.warn(`Кнопка ${id} не найдена`);
+    }
+  });
 
   // Обновляем логику выбора типов
   updateEquipmentTypeChange();
@@ -3357,4 +3342,52 @@ function setupTypesManagementInModal() {
   console.log('Управление типами в модальном окне настроено');
 }
 
+// Обработчики кликов для кнопок управления типами
+function handleManageTypesClick(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  console.log('Клик по кнопке управления типами');
+  showModal('manage-types-modal', loadTypesManagement);
+}
+
+function handleAddNewTypeClick(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  console.log('Клик по кнопке добавления типа');
+  showQuickAddTypeModal();
+}
+
+function handleAddNewSubtypeClick(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  console.log('Клик по кнопке добавления подтипа');
+  showQuickAddSubtypeModal();
+}
+
+// Глобальные функции для тестирования (можно вызвать из консоли)
+window.testTypesManagement = function() {
+  console.log('=== ТЕСТИРОВАНИЕ УПРАВЛЕНИЯ ТИПАМИ ===');
+  
+  const manageBtn = document.getElementById('manage-types-btn');
+  const addTypeBtn = document.getElementById('add-new-type-btn');
+  const addSubtypeBtn = document.getElementById('add-new-subtype-btn');
+  
+  console.log('manage-types-btn:', manageBtn);
+  console.log('add-new-type-btn:', addTypeBtn);
+  console.log('add-new-subtype-btn:', addSubtypeBtn);
+  
+  if (manageBtn) {
+    console.log('Попытка клика по кнопке управления типами...');
+    manageBtn.click();
+  }
+};
+
+window.forceSetupTypes = function() {
+  console.log('Принудительная настройка управления типами...');
+  setupTypesManagementInModal();
+};
+
 console.log('Система управления типами техники загружена');
+console.log('Доступные функции для тестирования:');
+console.log('- testTypesManagement() - тест кнопок');
+console.log('- forceSetupTypes() - принудительная настройка');
