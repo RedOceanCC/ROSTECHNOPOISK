@@ -119,8 +119,15 @@ function showTab(tabId) {
   }
 }
 
-function showModal(modalId) {
-  document.getElementById(modalId).classList.remove('hidden');
+function showModal(modalId, callback) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.classList.remove('hidden');
+    // Вызываем callback после показа модального окна
+    if (callback && typeof callback === 'function') {
+      setTimeout(callback, 100); // Небольшая задержка для анимации
+    }
+  }
 }
 
 function hideModal(modalId) {
@@ -1299,7 +1306,6 @@ async function initOwnerDashboard() {
   await renderOwnerOrders();
   setupAddEquipmentModal();
   setupOwnerTabs();
-  setupTypesManagement();
   setupRespondOrderModal();
   
   // Запускаем автообновление
@@ -1548,6 +1554,9 @@ function setupAddEquipmentModal() {
   const typeSelect = document.getElementById('equipment-type');
   const subtypeSelect = document.getElementById('equipment-subtype');
   
+  // Настраиваем управление типами сразу после получения элементов
+  setupTypesManagement();
+  
   // Функция для заполнения типов техники
   function populateEquipmentTypes() {
     typeSelect.innerHTML = '<option value="">Выберите тип</option>';
@@ -1599,6 +1608,12 @@ function setupAddEquipmentModal() {
     }
     
     showModal('add-equipment-modal');
+    
+    // Настраиваем кнопки управления типами после открытия модального окна
+    setTimeout(() => {
+      console.log('Настройка кнопок управления типами в модальном окне...');
+      setupTypesManagementInModal();
+    }, 200);
   };
   
   modal.querySelector('.modal-close').onclick = () => hideModal('add-equipment-modal');
@@ -2766,28 +2781,65 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.logout-btn').forEach(btn => {
     btn.addEventListener('click', handleLogout);
   });
+  
+  // Небольшая задержка перед настройкой управления типами
+  // чтобы убедиться, что все элементы загружены
+  setTimeout(() => {
+    console.log('Проверка элементов управления типами...');
+    const manageBtn = document.getElementById('manage-types-btn');
+    const addTypeBtn = document.getElementById('add-new-type-btn');
+    const addSubtypeBtn = document.getElementById('add-new-subtype-btn');
+    
+    console.log('manage-types-btn:', manageBtn);
+    console.log('add-new-type-btn:', addTypeBtn);
+    console.log('add-new-subtype-btn:', addSubtypeBtn);
+    
+    // Если пользователь уже авторизован и на странице владельца
+    if (window.appData && window.appData.user && window.appData.user.role === 'owner') {
+      console.log('Пользователь - владелец, настраиваем управление типами...');
+      setupTypesManagement();
+    }
+  }, 1000);
 });
 
 // === УПРАВЛЕНИЕ ТИПАМИ ТЕХНИКИ ===
 
 // Настройка системы управления типами техники
 function setupTypesManagement() {
+  console.log('Настройка управления типами техники...');
+  
   // Кнопка "Управление типами"
   const manageTypesBtn = document.getElementById('manage-types-btn');
+  console.log('Кнопка управления типами:', manageTypesBtn);
   if (manageTypesBtn) {
-    manageTypesBtn.onclick = () => showModal('manage-types-modal', loadTypesManagement);
+    manageTypesBtn.onclick = (e) => {
+      e.preventDefault();
+      console.log('Клик по кнопке управления типами');
+      showModal('manage-types-modal', loadTypesManagement);
+    };
   }
 
   // Кнопки быстрого добавления
   const addNewTypeBtn = document.getElementById('add-new-type-btn');
   const addNewSubtypeBtn = document.getElementById('add-new-subtype-btn');
   
+  console.log('Кнопка добавления типа:', addNewTypeBtn);
+  console.log('Кнопка добавления подтипа:', addNewSubtypeBtn);
+  
   if (addNewTypeBtn) {
-    addNewTypeBtn.onclick = () => showQuickAddTypeModal();
+    addNewTypeBtn.onclick = (e) => {
+      e.preventDefault();
+      console.log('Клик по кнопке добавления типа');
+      showQuickAddTypeModal();
+    };
   }
   
   if (addNewSubtypeBtn) {
-    addNewSubtypeBtn.onclick = () => showQuickAddSubtypeModal();
+    addNewSubtypeBtn.onclick = (e) => {
+      e.preventDefault();
+      console.log('Клик по кнопке добавления подтипа');
+      showQuickAddSubtypeModal();
+    };
   }
 
   // Модальные окна
@@ -2797,22 +2849,31 @@ function setupTypesManagement() {
   
   // Обновляем логику выбора типов
   updateEquipmentTypeChange();
+  
+  console.log('Управление типами настроено');
 }
 
 // Настройка модального окна управления типами
 function setupManageTypesModal() {
-  const addTypeBtn = document.getElementById('add-type-btn');
-  const refreshBtn = document.getElementById('refresh-types-btn');
-
-  if (addTypeBtn) {
-    addTypeBtn.onclick = () => {
-      hideModal('manage-types-modal');
-      showEditTypeModal();
-    };
-  }
-
-  if (refreshBtn) {
-    refreshBtn.onclick = () => loadTypesManagement();
+  console.log('Настройка модального окна управления типами');
+  
+  // Используем делегирование событий, так как кнопки создаются динамически
+  const modal = document.getElementById('manage-types-modal');
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target.id === 'add-type-btn') {
+        e.preventDefault();
+        console.log('Клик по кнопке добавления типа в модальном окне');
+        hideModal('manage-types-modal');
+        showEditTypeModal();
+      }
+      
+      if (e.target.id === 'refresh-types-btn') {
+        e.preventDefault();
+        console.log('Клик по кнопке обновления');
+        loadTypesManagement();
+      }
+    });
   }
 }
 
@@ -3047,11 +3108,14 @@ async function deleteTypeRecord(typeId) {
 
 // Настройка модальных окон быстрого добавления
 function setupQuickAddModals() {
+  console.log('Настройка быстрых модальных окон');
+  
   // Быстрое добавление типа
   const quickTypeForm = document.getElementById('quick-add-type-form');
   if (quickTypeForm) {
     quickTypeForm.onsubmit = async (e) => {
       e.preventDefault();
+      console.log('Отправка формы быстрого добавления типа');
       await quickAddType();
     };
   }
@@ -3061,17 +3125,22 @@ function setupQuickAddModals() {
   if (quickSubtypeForm) {
     quickSubtypeForm.onsubmit = async (e) => {
       e.preventDefault();
+      console.log('Отправка формы быстрого добавления подтипа');
       await quickAddSubtype();
     };
   }
 
   // Закрытие модальных окон
-  ['quick-add-type-modal', 'quick-add-subtype-modal'].forEach(modalId => {
+  ['quick-add-type-modal', 'quick-add-subtype-modal', 'edit-type-modal', 'manage-types-modal'].forEach(modalId => {
     const modal = document.getElementById(modalId);
     if (modal) {
       const closeButtons = modal.querySelectorAll('.modal-close, .modal-cancel');
       closeButtons.forEach(btn => {
-        btn.onclick = () => hideModal(modalId);
+        btn.onclick = (e) => {
+          e.preventDefault();
+          console.log(`Закрытие модального окна: ${modalId}`);
+          hideModal(modalId);
+        };
       });
     }
   });
@@ -3202,15 +3271,27 @@ function updateEquipmentTypeChange() {
   const subtypeSelect = document.getElementById('equipment-subtype');
   const addSubtypeBtn = document.getElementById('add-new-subtype-btn');
 
-  if (!typeSelect || !subtypeSelect) return;
+  console.log('Настройка обработчиков смены типа:', { typeSelect, subtypeSelect, addSubtypeBtn });
 
-  typeSelect.addEventListener('change', function() {
-    const selectedType = this.value;
+  if (!typeSelect || !subtypeSelect) {
+    console.log('Элементы не найдены, пропускаем настройку');
+    return;
+  }
+
+  // Убираем старые обработчики (если есть)
+  typeSelect.removeEventListener('change', handleTypeChange);
+  
+  // Добавляем новый обработчик
+  typeSelect.addEventListener('change', handleTypeChange);
+  
+  function handleTypeChange() {
+    const selectedType = typeSelect.value;
+    console.log('Изменение типа:', selectedType);
     
     // Очищаем подтипы
     subtypeSelect.innerHTML = '<option value="">Выберите подтип</option>';
     
-    if (selectedType && appData.equipmentTypes[selectedType]) {
+    if (selectedType && appData.equipmentTypes && appData.equipmentTypes[selectedType]) {
       subtypeSelect.disabled = false;
       if (addSubtypeBtn) addSubtypeBtn.disabled = false;
       
@@ -3226,7 +3307,54 @@ function updateEquipmentTypeChange() {
       if (addSubtypeBtn) addSubtypeBtn.disabled = true;
       subtypeSelect.innerHTML = '<option value="">Сначала выберите тип</option>';
     }
-  });
+  }
+}
+
+// Настройка управления типами в модальном окне
+function setupTypesManagementInModal() {
+  console.log('Настройка управления типами в модальном окне...');
+  
+  // Кнопка "Управление типами"
+  const manageTypesBtn = document.getElementById('manage-types-btn');
+  console.log('Кнопка управления типами в модальном окне:', manageTypesBtn);
+  if (manageTypesBtn && !manageTypesBtn.onclick) {
+    manageTypesBtn.onclick = (e) => {
+      e.preventDefault();
+      console.log('Клик по кнопке управления типами');
+      showModal('manage-types-modal', loadTypesManagement);
+    };
+    console.log('Обработчик для кнопки управления типами установлен');
+  }
+
+  // Кнопки быстрого добавления
+  const addNewTypeBtn = document.getElementById('add-new-type-btn');
+  const addNewSubtypeBtn = document.getElementById('add-new-subtype-btn');
+  
+  console.log('Кнопка добавления типа в модальном окне:', addNewTypeBtn);
+  console.log('Кнопка добавления подтипа в модальном окне:', addNewSubtypeBtn);
+  
+  if (addNewTypeBtn && !addNewTypeBtn.onclick) {
+    addNewTypeBtn.onclick = (e) => {
+      e.preventDefault();
+      console.log('Клик по кнопке добавления типа');
+      showQuickAddTypeModal();
+    };
+    console.log('Обработчик для кнопки добавления типа установлен');
+  }
+  
+  if (addNewSubtypeBtn && !addNewSubtypeBtn.onclick) {
+    addNewSubtypeBtn.onclick = (e) => {
+      e.preventDefault();
+      console.log('Клик по кнопке добавления подтипа');
+      showQuickAddSubtypeModal();
+    };
+    console.log('Обработчик для кнопки добавления подтипа установлен');
+  }
+
+  // Обновляем логику выбора типов
+  updateEquipmentTypeChange();
+  
+  console.log('Управление типами в модальном окне настроено');
 }
 
 console.log('Система управления типами техники загружена');
