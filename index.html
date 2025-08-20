@@ -458,6 +458,71 @@
             </div>
         </div>
 
+        <!-- Модальные окна для управления типами техники -->
+        
+        <!-- Модальное окно создания/редактирования типа техники -->
+        <div id="type-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content card">
+                <div class="modal-header">
+                    <h3 id="type-modal-title">Создать тип техники</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <form id="type-form" class="modal-body">
+                    <input type="hidden" id="type-id">
+                    <div class="form-group">
+                        <label class="form-label">Название типа техники *</label>
+                        <input type="text" id="type-name" class="form-control" placeholder="Например: Экскаваторы" required>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn--secondary modal-cancel">Отмена</button>
+                        <button type="submit" class="btn btn--primary">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Модальное окно создания/редактирования подтипа техники -->
+        <div id="subtype-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content card">
+                <div class="modal-header">
+                    <h3 id="subtype-modal-title">Создать подтип техники</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <form id="subtype-form" class="modal-body">
+                    <input type="hidden" id="subtype-id">
+                    <input type="hidden" id="subtype-type-id">
+                    <div class="form-group">
+                        <label class="form-label">Тип техники</label>
+                        <input type="text" id="subtype-parent-type" class="form-control" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Название подтипа *</label>
+                        <input type="text" id="subtype-name" class="form-control" placeholder="Например: Гусеничный экскаватор 20-25 тонн" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Характеристики</label>
+                        <textarea id="subtype-characteristics" class="form-control" rows="3" placeholder="Грузоподъёмность, размеры, особенности..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Дополнительные опции</label>
+                        <textarea id="subtype-options" class="form-control" rows="2" placeholder="Навесное оборудование, специальные функции..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <div class="form-checkbox">
+                            <input type="checkbox" id="subtype-offroad">
+                            <label for="subtype-offroad">Вездеходная техника</label>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn--secondary modal-cancel">Отмена</button>
+                        <button type="submit" class="btn btn--primary">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- Модальное окно создания компании -->
         <div id="create-company-modal" class="modal hidden">
             <div class="modal-backdrop"></div>
@@ -523,15 +588,41 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Тип техники *</label>
-                            <select id="equipment-type" class="form-control" required>
-                                <option value="">Выберите тип</option>
-                            </select>
+                            <div class="input-with-actions">
+                                <select id="equipment-type" class="form-control" required>
+                                    <option value="">Выберите тип</option>
+                                </select>
+                                <div class="input-actions">
+                                    <button type="button" class="btn btn--small btn--secondary" id="add-type-btn" title="Добавить новый тип">
+                                        ➕
+                                    </button>
+                                    <button type="button" class="btn btn--small btn--secondary" id="edit-type-btn" title="Редактировать тип" disabled>
+                                        ✏️
+                                    </button>
+                                    <button type="button" class="btn btn--small btn--danger" id="delete-type-btn" title="Удалить тип" disabled>
+                                        🗑️
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Подтип техники *</label>
-                            <select id="equipment-subtype" class="form-control" disabled required>
-                                <option value="">Сначала выберите тип</option>
-                            </select>
+                            <div class="input-with-actions">
+                                <select id="equipment-subtype" class="form-control" disabled required>
+                                    <option value="">Сначала выберите тип</option>
+                                </select>
+                                <div class="input-actions">
+                                    <button type="button" class="btn btn--small btn--secondary" id="add-subtype-btn" title="Добавить новый подтип" disabled>
+                                        ➕
+                                    </button>
+                                    <button type="button" class="btn btn--small btn--secondary" id="edit-subtype-btn" title="Редактировать подтип" disabled>
+                                        ✏️
+                                    </button>
+                                    <button type="button" class="btn btn--small btn--danger" id="delete-subtype-btn" title="Удалить подтип" disabled>
+                                        🗑️
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="form-group">

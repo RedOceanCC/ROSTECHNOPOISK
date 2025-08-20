@@ -1297,6 +1297,35 @@ body {
   color: #dc2626;
 }
 
+/* Стили для управления типами техники */
+.input-with-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-with-actions .form-control {
+  flex: 1;
+}
+
+.input-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.btn--small {
+  padding: 6px 8px;
+  font-size: 12px;
+  line-height: 1;
+  min-width: auto;
+}
+
+.btn--small[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Счетчик ставок */
 .bids-counter {
   font-weight: 600;

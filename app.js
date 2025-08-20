@@ -1547,15 +1547,57 @@ function setupAddEquipmentModal() {
   const typeSelect = document.getElementById('equipment-type');
   const subtypeSelect = document.getElementById('equipment-subtype');
   
+  // Кнопки управления типами
+  const addTypeBtn = document.getElementById('add-type-btn');
+  const editTypeBtn = document.getElementById('edit-type-btn');
+  const deleteTypeBtn = document.getElementById('delete-type-btn');
+  const addSubtypeBtn = document.getElementById('add-subtype-btn');
+  const editSubtypeBtn = document.getElementById('edit-subtype-btn');
+  const deleteSubtypeBtn = document.getElementById('delete-subtype-btn');
+  
   // Функция для заполнения типов техники
-  function populateEquipmentTypes() {
+  async function populateEquipmentTypes() {
     typeSelect.innerHTML = '<option value="">Выберите тип</option>';
-  Object.keys(appData.equipmentTypes).forEach(type => {
-    const option = document.createElement('option');
-    option.value = type;
-    option.textContent = type;
-    typeSelect.appendChild(option);
-  });
+    
+    try {
+      // Загружаем типы техники с сервера
+      const response = await apiRequest('/equipment/equipment-types');
+      if (response.success && response.data) {
+        appData.equipmentTypes = response.data;
+        
+        Object.keys(appData.equipmentTypes).forEach(type => {
+          const option = document.createElement('option');
+          option.value = type;
+          option.textContent = type;
+          typeSelect.appendChild(option);
+        });
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки типов техники:', error);
+    }
+  }
+  
+  // Функция для обновления состояния кнопок
+  function updateButtonStates() {
+    const hasSelectedType = typeSelect.value !== '';
+    const hasSelectedSubtype = subtypeSelect.value !== '';
+    const isAdmin = appData.currentUser && appData.currentUser.role === 'admin';
+    
+    // Показываем кнопки управления только администраторам
+    const actionButtons = [addTypeBtn, editTypeBtn, deleteTypeBtn, addSubtypeBtn, editSubtypeBtn, deleteSubtypeBtn];
+    actionButtons.forEach(btn => {
+      if (btn) {
+        btn.style.display = isAdmin ? 'inline-block' : 'none';
+      }
+    });
+    
+    if (isAdmin) {
+      editTypeBtn.disabled = !hasSelectedType;
+      deleteTypeBtn.disabled = !hasSelectedType;
+      addSubtypeBtn.disabled = !hasSelectedType;
+      editSubtypeBtn.disabled = !hasSelectedSubtype;
+      deleteSubtypeBtn.disabled = !hasSelectedSubtype;
+    }
   }
   
   // Зависимые списки
@@ -1569,18 +1611,23 @@ function setupAddEquipmentModal() {
       
       if (Array.isArray(subtypes)) {
         subtypes.forEach(subtypeData => {
-        const option = document.createElement('option');
+          const option = document.createElement('option');
           // Если это объект с данными, берем subtype, иначе используем как строку
           const subtypeValue = typeof subtypeData === 'object' ? subtypeData.subtype : subtypeData;
           option.value = subtypeValue;
           option.textContent = subtypeValue;
-        subtypeSelect.appendChild(option);
-      });
+          subtypeSelect.appendChild(option);
+        });
       }
     } else {
       subtypeSelect.disabled = true;
     }
+    
+    updateButtonStates();
   };
+  
+  // Обработчик изменения подтипа
+  subtypeSelect.onchange = updateButtonStates;
   
   addBtn.onclick = () => {
     populateEquipmentTypes(); // Заполняем типы при открытии модала
@@ -1651,6 +1698,17 @@ function setupAddEquipmentModal() {
       alert('Ошибка при добавлении техники: ' + error.message);
     }
   };
+  
+  // Обработчики кнопок управления типами
+  addTypeBtn.onclick = () => openTypeModal();
+  editTypeBtn.onclick = () => openTypeModal(typeSelect.value);
+  deleteTypeBtn.onclick = () => deleteType(typeSelect.value);
+  addSubtypeBtn.onclick = () => openSubtypeModal(typeSelect.value);
+  editSubtypeBtn.onclick = () => openSubtypeModal(typeSelect.value, subtypeSelect.value);
+  deleteSubtypeBtn.onclick = () => deleteSubtype(typeSelect.value, subtypeSelect.value);
+  
+  // Инициализация состояния кнопок
+  updateButtonStates();
 }
 
 // Дашборд менеджера
@@ -2765,4 +2823,363 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.logout-btn').forEach(btn => {
     btn.addEventListener('click', handleLogout);
   });
+  
+  // Инициализация модальных окон типов техники
+  setupTypeManagementModals();
 });
+
+// === УПРАВЛЕНИЕ ТИПАМИ ТЕХНИКИ ===
+
+// Настройка модальных окон для управления типами
+function setupTypeManagementModals() {
+  setupTypeModal();
+  setupSubtypeModal();
+}
+
+// Настройка модального окна типа техники
+function setupTypeModal() {
+  const modal = document.getElementById('type-modal');
+  const form = document.getElementById('type-form');
+  
+  modal.querySelector('.modal-close').onclick = () => hideModal('type-modal');
+  modal.querySelector('.modal-cancel').onclick = () => hideModal('type-modal');
+  modal.querySelector('.modal-backdrop').onclick = () => hideModal('type-modal');
+  
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    
+    const typeId = document.getElementById('type-id').value;
+    const typeName = document.getElementById('type-name').value.trim();
+    
+    if (!typeName) {
+      alert('Введите название типа техники');
+      return;
+    }
+    
+    try {
+      if (typeId) {
+        // Редактирование существующего типа
+        const response = await apiRequest(`/equipment/types/${typeId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ type: typeName })
+        });
+        
+        if (!response.success) {
+          throw new Error(response.message);
+        }
+        
+        alert('Тип техники обновлен успешно');
+      } else {
+        // Создание нового типа
+        const response = await apiRequest('/equipment/types', {
+          method: 'POST',
+          body: JSON.stringify({ type: typeName })
+        });
+        
+        if (!response.success) {
+          throw new Error(response.message);
+        }
+        
+        alert('Тип техники создан успешно');
+      }
+      
+      // Обновляем списки типов
+      await refreshEquipmentTypes();
+      hideModal('type-modal');
+      form.reset();
+      
+    } catch (error) {
+      alert('Ошибка: ' + error.message);
+    }
+  };
+}
+
+// Настройка модального окна подтипа техники
+function setupSubtypeModal() {
+  const modal = document.getElementById('subtype-modal');
+  const form = document.getElementById('subtype-form');
+  
+  modal.querySelector('.modal-close').onclick = () => hideModal('subtype-modal');
+  modal.querySelector('.modal-cancel').onclick = () => hideModal('subtype-modal');
+  modal.querySelector('.modal-backdrop').onclick = () => hideModal('subtype-modal');
+  
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    
+    const subtypeId = document.getElementById('subtype-id').value;
+    const typeId = document.getElementById('subtype-type-id').value;
+    const subtypeName = document.getElementById('subtype-name').value.trim();
+    const characteristics = document.getElementById('subtype-characteristics').value.trim();
+    const options = document.getElementById('subtype-options').value.trim();
+    const isOffRoad = document.getElementById('subtype-offroad').checked;
+    
+    if (!subtypeName) {
+      alert('Введите название подтипа техники');
+      return;
+    }
+    
+    const subtypeData = {
+      subtype: subtypeName,
+      characteristics: characteristics,
+      additional_options: options,
+      is_off_road: isOffRoad
+    };
+    
+    try {
+      if (subtypeId) {
+        // Редактирование существующего подтипа
+        const response = await apiRequest(`/equipment/subtypes/${subtypeId}`, {
+          method: 'PUT',
+          body: JSON.stringify(subtypeData)
+        });
+        
+        if (!response.success) {
+          throw new Error(response.message);
+        }
+        
+        alert('Подтип техники обновлен успешно');
+      } else {
+        // Создание нового подтипа
+        const response = await apiRequest(`/equipment/types/${typeId}/subtypes`, {
+          method: 'POST',
+          body: JSON.stringify(subtypeData)
+        });
+        
+        if (!response.success) {
+          throw new Error(response.message);
+        }
+        
+        alert('Подтип техники создан успешно');
+      }
+      
+      // Обновляем списки типов
+      await refreshEquipmentTypes();
+      hideModal('subtype-modal');
+      form.reset();
+      
+    } catch (error) {
+      alert('Ошибка: ' + error.message);
+    }
+  };
+}
+
+// Открытие модального окна типа техники
+async function openTypeModal(typeName = null) {
+  const modal = document.getElementById('type-modal');
+  const title = document.getElementById('type-modal-title');
+  const typeIdField = document.getElementById('type-id');
+  const typeNameField = document.getElementById('type-name');
+  
+  if (typeName) {
+    // Режим редактирования
+    title.textContent = 'Редактировать тип техники';
+    typeNameField.value = typeName;
+    
+    // Получаем ID типа (нужно для API)
+    try {
+      const response = await apiRequest('/equipment/types-management');
+      if (response.success) {
+        const type = response.types.find(t => t.type === typeName);
+        typeIdField.value = type ? type.id : '';
+      }
+    } catch (error) {
+      console.error('Ошибка получения ID типа:', error);
+    }
+  } else {
+    // Режим создания
+    title.textContent = 'Создать тип техники';
+    typeIdField.value = '';
+    typeNameField.value = '';
+  }
+  
+  showModal('type-modal');
+  typeNameField.focus();
+}
+
+// Открытие модального окна подтипа техники
+async function openSubtypeModal(typeName, subtypeName = null) {
+  const modal = document.getElementById('subtype-modal');
+  const title = document.getElementById('subtype-modal-title');
+  const subtypeIdField = document.getElementById('subtype-id');
+  const typeIdField = document.getElementById('subtype-type-id');
+  const parentTypeField = document.getElementById('subtype-parent-type');
+  const subtypeNameField = document.getElementById('subtype-name');
+  const characteristicsField = document.getElementById('subtype-characteristics');
+  const optionsField = document.getElementById('subtype-options');
+  const offroadField = document.getElementById('subtype-offroad');
+  
+  parentTypeField.value = typeName;
+  
+  try {
+    // Получаем ID типа
+    const response = await apiRequest('/equipment/types-management');
+    if (response.success) {
+      const type = response.types.find(t => t.type === typeName);
+      typeIdField.value = type ? type.id : '';
+    }
+  } catch (error) {
+    console.error('Ошибка получения ID типа:', error);
+  }
+  
+  if (subtypeName) {
+    // Режим редактирования
+    title.textContent = 'Редактировать подтип техники';
+    
+    // Загружаем данные подтипа
+    try {
+      const subtypes = await apiRequest(`/equipment/types/${encodeURIComponent(typeName)}/subtypes`);
+      if (subtypes.success) {
+        const subtype = subtypes.subtypes.find(s => s.subtype === subtypeName);
+        if (subtype) {
+          subtypeIdField.value = subtype.id;
+          subtypeNameField.value = subtype.subtype;
+          characteristicsField.value = subtype.characteristics || '';
+          optionsField.value = subtype.additional_options || '';
+          offroadField.checked = !!subtype.is_off_road;
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки данных подтипа:', error);
+    }
+  } else {
+    // Режим создания
+    title.textContent = 'Создать подтип техники';
+    subtypeIdField.value = '';
+    subtypeNameField.value = '';
+    characteristicsField.value = '';
+    optionsField.value = '';
+    offroadField.checked = false;
+  }
+  
+  showModal('subtype-modal');
+  subtypeNameField.focus();
+}
+
+// Удаление типа техники
+async function deleteType(typeName) {
+  if (!typeName) return;
+  
+  if (!confirm(`Вы уверены, что хотите удалить тип техники "${typeName}"?\n\nЭто действие нельзя отменить. Тип можно удалить только если для него нет зарегистрированной техники.`)) {
+    return;
+  }
+  
+  try {
+    const response = await apiRequest(`/equipment/types/${encodeURIComponent(typeName)}`, {
+      method: 'DELETE'
+    });
+    
+    if (!response.success) {
+      throw new Error(response.message);
+    }
+    
+    alert('Тип техники удален успешно');
+    await refreshEquipmentTypes();
+    
+  } catch (error) {
+    alert('Ошибка удаления: ' + error.message);
+  }
+}
+
+// Удаление подтипа техники
+async function deleteSubtype(typeName, subtypeName) {
+  if (!typeName || !subtypeName) return;
+  
+  if (!confirm(`Вы уверены, что хотите удалить подтип "${subtypeName}" из типа "${typeName}"?\n\nЭто действие нельзя отменить. Подтип можно удалить только если для него нет зарегистрированной техники.`)) {
+    return;
+  }
+  
+  try {
+    // Получаем ID подтипа
+    const subtypes = await apiRequest(`/equipment/types/${encodeURIComponent(typeName)}/subtypes`);
+    if (!subtypes.success) {
+      throw new Error('Не удалось получить список подтипов');
+    }
+    
+    const subtype = subtypes.subtypes.find(s => s.subtype === subtypeName);
+    if (!subtype) {
+      throw new Error('Подтип не найден');
+    }
+    
+    const response = await apiRequest(`/equipment/subtypes/${subtype.id}`, {
+      method: 'DELETE'
+    });
+    
+    if (!response.success) {
+      throw new Error(response.message);
+    }
+    
+    alert('Подтип техники удален успешно');
+    await refreshEquipmentTypes();
+    
+  } catch (error) {
+    alert('Ошибка удаления: ' + error.message);
+  }
+}
+
+// Обновление списков типов техники
+async function refreshEquipmentTypes() {
+  try {
+    const response = await apiRequest('/equipment/equipment-types');
+    if (response.success && response.data) {
+      appData.equipmentTypes = response.data;
+      
+      // Обновляем селекты если они существуют
+      const typeSelect = document.getElementById('equipment-type');
+      const subtypeSelect = document.getElementById('equipment-subtype');
+      
+      if (typeSelect) {
+        const currentType = typeSelect.value;
+        const currentSubtype = subtypeSelect ? subtypeSelect.value : '';
+        
+        // Обновляем типы
+        typeSelect.innerHTML = '<option value="">Выберите тип</option>';
+        Object.keys(appData.equipmentTypes).forEach(type => {
+          const option = document.createElement('option');
+          option.value = type;
+          option.textContent = type;
+          typeSelect.appendChild(option);
+        });
+        
+        // Восстанавливаем выбранный тип если он еще существует
+        if (currentType && appData.equipmentTypes[currentType]) {
+          typeSelect.value = currentType;
+          
+          // Обновляем подтипы
+          if (subtypeSelect) {
+            subtypeSelect.innerHTML = '<option value="">Выберите подтип</option>';
+            subtypeSelect.disabled = false;
+            
+            const subtypes = appData.equipmentTypes[currentType];
+            if (Array.isArray(subtypes)) {
+              subtypes.forEach(subtypeData => {
+                const option = document.createElement('option');
+                const subtypeValue = typeof subtypeData === 'object' ? subtypeData.subtype : subtypeData;
+                option.value = subtypeValue;
+                option.textContent = subtypeValue;
+                subtypeSelect.appendChild(option);
+              });
+              
+              // Восстанавливаем выбранный подтип если он еще существует
+              if (currentSubtype && subtypes.some(s => (typeof s === 'object' ? s.subtype : s) === currentSubtype)) {
+                subtypeSelect.value = currentSubtype;
+              }
+            }
+          }
+        } else {
+          // Сбрасываем подтипы если тип больше не существует
+          if (subtypeSelect) {
+            subtypeSelect.innerHTML = '<option value="">Сначала выберите тип</option>';
+            subtypeSelect.disabled = true;
+          }
+        }
+        
+        // Обновляем состояние кнопок если функция доступна
+        if (window.updateButtonStates) {
+          window.updateButtonStates();
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Ошибка обновления типов техники:', error);
+  }
+}

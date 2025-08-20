@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Equipment = require('../models/Equipment');
-const { requireAuth, requireOwner, requireOwnerAccess, validateRequired } = require('../middleware/auth');
+const EquipmentType = require('../models/EquipmentType');
+const { requireAuth, requireOwner, requireOwnerAccess, requireAdmin, validateRequired } = require('../middleware/auth');
 const EquipmentCatalogImporter = require('../utils/csvImporter');
 const Database = require('../models/Database');
 const logger = require('../utils/logger');
@@ -450,6 +451,153 @@ router.get('/owner/:ownerId', async (req, res, next) => {
     res.json({
       success: true,
       equipment: equipment
+    });
+    
+  } catch (error) {
+    next(error);
+  }
+});
+
+// === УПРАВЛЕНИЕ ТИПАМИ ТЕХНИКИ ===
+
+// GET /api/equipment/types-management - Получить все типы для управления (только админ)
+router.get('/types-management', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const types = await EquipmentType.findAllTypes();
+    const hierarchy = await EquipmentType.getTypesHierarchy();
+    
+    res.json({
+      success: true,
+      types: types,
+      hierarchy: hierarchy
+    });
+    
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/equipment/types - Создать новый тип техники (только админ)
+router.post('/types', requireAuth, requireAdmin, validateRequired(['type']), async (req, res, next) => {
+  try {
+    const { type } = req.body;
+    
+    const newType = await EquipmentType.createType(type);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Тип техники создан успешно',
+      type: newType
+    });
+    
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PUT /api/equipment/types/:id - Обновить тип техники (только админ)
+router.put('/types/:id', requireAuth, requireAdmin, validateRequired(['type']), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { type } = req.body;
+    
+    const updatedType = await EquipmentType.updateType(parseInt(id), type);
+    
+    res.json({
+      success: true,
+      message: 'Тип техники обновлен успешно',
+      type: updatedType
+    });
+    
+  } catch (error) {
+    next(error);
+  }
+});
+
+// DELETE /api/equipment/types/:typeName - Удалить тип техники (только админ)
+router.delete('/types/:typeName', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const { typeName } = req.params;
+    
+    const result = await EquipmentType.deleteType(decodeURIComponent(typeName));
+    
+    res.json({
+      success: true,
+      message: 'Тип техники удален успешно',
+      result: result
+    });
+    
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /api/equipment/types/:typeName/subtypes - Получить подтипы для типа
+router.get('/types/:typeName/subtypes', async (req, res, next) => {
+  try {
+    const { typeName } = req.params;
+    
+    const subtypes = await EquipmentType.findSubtypesByType(decodeURIComponent(typeName));
+    
+    res.json({
+      success: true,
+      subtypes: subtypes
+    });
+    
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/equipment/types/:typeId/subtypes - Создать подтип для типа (только админ)
+router.post('/types/:typeId/subtypes', requireAuth, requireAdmin, validateRequired(['subtype']), async (req, res, next) => {
+  try {
+    const { typeId } = req.params;
+    const subtypeData = req.body;
+    
+    const newSubtype = await EquipmentType.createSubtype(parseInt(typeId), subtypeData);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Подтип техники создан успешно',
+      subtype: newSubtype
+    });
+    
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PUT /api/equipment/subtypes/:id - Обновить подтип техники (только админ)
+router.put('/subtypes/:id', requireAuth, requireAdmin, validateRequired(['subtype']), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const subtypeData = req.body;
+    
+    const updatedSubtype = await EquipmentType.updateSubtype(parseInt(id), subtypeData);
+    
+    res.json({
+      success: true,
+      message: 'Подтип техники обновлен успешно',
+      subtype: updatedSubtype
+    });
+    
+  } catch (error) {
+    next(error);
+  }
+});
+
+// DELETE /api/equipment/subtypes/:id - Удалить подтип техники (только админ)
+router.delete('/subtypes/:id', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await EquipmentType.deleteSubtype(parseInt(id));
+    
+    res.json({
+      success: true,
+      message: 'Подтип техники удален успешно',
+      result: result
     });
     
   } catch (error) {
