@@ -989,6 +989,226 @@ body {
   border-radius: 4px;
 }
 
+/* === УПРАВЛЕНИЕ ТИПАМИ ТЕХНИКИ === */
+
+/* Контейнеры для селектов с кнопками */
+.equipment-type-container,
+.equipment-subtype-container {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.equipment-type-container select,
+.equipment-subtype-container select {
+  flex: 1;
+}
+
+.equipment-type-container button,
+.equipment-subtype-container button {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+/* Модальное окно управления типами */
+.manage-types-modal {
+  max-width: 900px;
+  width: 90%;
+}
+
+.types-management-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.types-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.types-list {
+  max-height: 500px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #f9f9f9;
+}
+
+/* Карточка типа техники */
+.type-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 16px;
+  margin: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: all 0.2s ease;
+}
+
+.type-card:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  border-color: #4CAF50;
+}
+
+.type-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.type-info {
+  flex: 1;
+}
+
+.type-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 4px 0;
+}
+
+.subtype-name {
+  font-size: 14px;
+  color: #7f8c8d;
+  margin: 0;
+}
+
+.type-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.type-actions .btn {
+  padding: 4px 8px;
+  font-size: 12px;
+  min-width: auto;
+}
+
+.type-details {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #ecf0f1;
+}
+
+.type-characteristics {
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.type-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #7f8c8d;
+}
+
+.type-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.type-badge--offroad {
+  background: #e8f5e8;
+  color: #2e7d32;
+}
+
+.type-badge--road {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+/* Группировка типов */
+.type-group {
+  margin-bottom: 20px;
+}
+
+.type-group-header {
+  background: #34495e;
+  color: white;
+  padding: 12px 16px;
+  margin: 0 8px 0 8px;
+  border-radius: 6px 6px 0 0;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.type-group-count {
+  background: rgba(255,255,255,0.2);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.type-group-content {
+  border: 1px solid #e0e0e0;
+  border-top: none;
+  margin: 0 8px;
+  border-radius: 0 0 6px 6px;
+  background: #f8f9fa;
+}
+
+/* Пустое состояние */
+.types-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #7f8c8d;
+}
+
+.types-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .manage-types-modal {
+    width: 95%;
+    max-width: none;
+  }
+  
+  .type-card-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .type-actions {
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
+  
+  .equipment-type-container,
+  .equipment-subtype-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .equipment-type-container button,
+  .equipment-subtype-container button {
+    width: 100%;
+    height: auto;
+    padding: 8px;
+  }
+}
+
 .btn--secondary {
   background-color: var(--secondary);
   color: var(--secondary-foreground);
@@ -1295,35 +1515,6 @@ body {
 .badge--danger {
   background-color: rgba(239, 68, 68, 0.1);
   color: #dc2626;
-}
-
-/* Стили для управления типами техники */
-.input-with-actions {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.input-with-actions .form-control {
-  flex: 1;
-}
-
-.input-actions {
-  display: flex;
-  gap: 4px;
-}
-
-.btn--small {
-  padding: 6px 8px;
-  font-size: 12px;
-  line-height: 1;
-  min-width: auto;
-}
-
-.btn--small[disabled] {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* Счетчик ставок */

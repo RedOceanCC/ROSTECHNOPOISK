@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Equipment = require('../models/Equipment');
-const EquipmentType = require('../models/EquipmentType');
-const { requireAuth, requireOwner, requireOwnerAccess, requireAdmin, validateRequired } = require('../middleware/auth');
+const { requireAuth, requireOwner, requireOwnerAccess, validateRequired } = require('../middleware/auth');
 const EquipmentCatalogImporter = require('../utils/csvImporter');
 const Database = require('../models/Database');
 const logger = require('../utils/logger');
@@ -460,48 +459,138 @@ router.get('/owner/:ownerId', async (req, res, next) => {
 
 // === УПРАВЛЕНИЕ ТИПАМИ ТЕХНИКИ ===
 
-// GET /api/equipment/types-management - Получить все типы для управления (только админ)
-router.get('/types-management', requireAuth, requireAdmin, async (req, res, next) => {
+// GET /api/equipment/types-management - Получить все типы и подтипы для управления
+router.get('/types-management', requireAuth, async (req, res, next) => {
   try {
-    const types = await EquipmentType.findAllTypes();
-    const hierarchy = await EquipmentType.getTypesHierarchy();
+    const dbInstance = Database.getInstance();
+    if (!dbInstance) {
+      throw new Error('База данных не подключена');
+    }
+
+    const sql = `
+      SELECT id, type, subtype, characteristics, is_off_road, additional_options, created_at
+      FROM equipment_types 
+      ORDER BY type, subtype
+    `;
+    
+    const types = await Database.all(sql);
     
     res.json({
       success: true,
-      types: types,
-      hierarchy: hierarchy
+      types: types
     });
     
   } catch (error) {
+    logger.error('Ошибка загрузки типов для управления', {
+      error: error.message,
+      stack: error.stack
+    });
     next(error);
   }
 });
 
-// POST /api/equipment/types - Создать новый тип техники (только админ)
-router.post('/types', requireAuth, requireAdmin, validateRequired(['type']), async (req, res, next) => {
+// POST /api/equipment/types - Создать новый тип техники
+router.post('/types', requireOwner, async (req, res, next) => {
   try {
-    const { type } = req.body;
+    const { type, subtype, characteristics, is_off_road, additional_options } = req.body;
     
-    const newType = await EquipmentType.createType(type);
+    if (!type || !subtype) {
+      return res.status(400).json({
+        success: false,
+        message: 'Тип и подтип техники обязательны'
+      });
+    }
+
+    const sql = `
+      INSERT INTO equipment_types (type, subtype, characteristics, is_off_road, additional_options)
+      VALUES (?, ?, ?, ?, ?)
+    `;
+    
+    const result = await Database.run(sql, [
+      type,
+      subtype,
+      characteristics || null,
+      is_off_road ? 1 : 0,
+      additional_options || null
+    ]);
+    
+    // Получаем созданную запись
+    const createdType = await Database.get('SELECT * FROM equipment_types WHERE id = ?', [result.lastID]);
+    
+    logger.info('Создан новый тип техники', { 
+      type, 
+      subtype, 
+      userId: req.user.id 
+    });
     
     res.status(201).json({
       success: true,
       message: 'Тип техники создан успешно',
-      type: newType
+      type: createdType
     });
     
   } catch (error) {
+    if (error.message.includes('UNIQUE constraint failed')) {
+      return res.status(409).json({
+        success: false,
+        message: 'Такая комбинация типа и подтипа уже существует'
+      });
+    }
+    
+    logger.error('Ошибка создания типа техники', {
+      error: error.message,
+      stack: error.stack
+    });
     next(error);
   }
 });
 
-// PUT /api/equipment/types/:id - Обновить тип техники (только админ)
-router.put('/types/:id', requireAuth, requireAdmin, validateRequired(['type']), async (req, res, next) => {
+// PUT /api/equipment/types/:id - Обновить тип техники
+router.put('/types/:id', requireOwner, async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { type } = req.body;
+    const { type, subtype, characteristics, is_off_road, additional_options } = req.body;
     
-    const updatedType = await EquipmentType.updateType(parseInt(id), type);
+    if (!type || !subtype) {
+      return res.status(400).json({
+        success: false,
+        message: 'Тип и подтип техники обязательны'
+      });
+    }
+
+    // Проверяем существование записи
+    const existingType = await Database.get('SELECT * FROM equipment_types WHERE id = ?', [id]);
+    if (!existingType) {
+      return res.status(404).json({
+        success: false,
+        message: 'Тип техники не найден'
+      });
+    }
+
+    const sql = `
+      UPDATE equipment_types 
+      SET type = ?, subtype = ?, characteristics = ?, is_off_road = ?, additional_options = ?
+      WHERE id = ?
+    `;
+    
+    await Database.run(sql, [
+      type,
+      subtype,
+      characteristics || null,
+      is_off_road ? 1 : 0,
+      additional_options || null,
+      id
+    ]);
+    
+    // Получаем обновленную запись
+    const updatedType = await Database.get('SELECT * FROM equipment_types WHERE id = ?', [id]);
+    
+    logger.info('Обновлен тип техники', { 
+      id,
+      type, 
+      subtype, 
+      userId: req.user.id 
+    });
     
     res.json({
       success: true,
@@ -510,97 +599,137 @@ router.put('/types/:id', requireAuth, requireAdmin, validateRequired(['type']), 
     });
     
   } catch (error) {
-    next(error);
-  }
-});
-
-// DELETE /api/equipment/types/:typeName - Удалить тип техники (только админ)
-router.delete('/types/:typeName', requireAuth, requireAdmin, async (req, res, next) => {
-  try {
-    const { typeName } = req.params;
+    if (error.message.includes('UNIQUE constraint failed')) {
+      return res.status(409).json({
+        success: false,
+        message: 'Такая комбинация типа и подтипа уже существует'
+      });
+    }
     
-    const result = await EquipmentType.deleteType(decodeURIComponent(typeName));
-    
-    res.json({
-      success: true,
-      message: 'Тип техники удален успешно',
-      result: result
+    logger.error('Ошибка обновления типа техники', {
+      error: error.message,
+      stack: error.stack
     });
-    
-  } catch (error) {
     next(error);
   }
 });
 
-// GET /api/equipment/types/:typeName/subtypes - Получить подтипы для типа
-router.get('/types/:typeName/subtypes', async (req, res, next) => {
-  try {
-    const { typeName } = req.params;
-    
-    const subtypes = await EquipmentType.findSubtypesByType(decodeURIComponent(typeName));
-    
-    res.json({
-      success: true,
-      subtypes: subtypes
-    });
-    
-  } catch (error) {
-    next(error);
-  }
-});
-
-// POST /api/equipment/types/:typeId/subtypes - Создать подтип для типа (только админ)
-router.post('/types/:typeId/subtypes', requireAuth, requireAdmin, validateRequired(['subtype']), async (req, res, next) => {
-  try {
-    const { typeId } = req.params;
-    const subtypeData = req.body;
-    
-    const newSubtype = await EquipmentType.createSubtype(parseInt(typeId), subtypeData);
-    
-    res.status(201).json({
-      success: true,
-      message: 'Подтип техники создан успешно',
-      subtype: newSubtype
-    });
-    
-  } catch (error) {
-    next(error);
-  }
-});
-
-// PUT /api/equipment/subtypes/:id - Обновить подтип техники (только админ)
-router.put('/subtypes/:id', requireAuth, requireAdmin, validateRequired(['subtype']), async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const subtypeData = req.body;
-    
-    const updatedSubtype = await EquipmentType.updateSubtype(parseInt(id), subtypeData);
-    
-    res.json({
-      success: true,
-      message: 'Подтип техники обновлен успешно',
-      subtype: updatedSubtype
-    });
-    
-  } catch (error) {
-    next(error);
-  }
-});
-
-// DELETE /api/equipment/subtypes/:id - Удалить подтип техники (только админ)
-router.delete('/subtypes/:id', requireAuth, requireAdmin, async (req, res, next) => {
+// DELETE /api/equipment/types/:id - Удалить тип техники
+router.delete('/types/:id', requireOwner, async (req, res, next) => {
   try {
     const { id } = req.params;
     
-    const result = await EquipmentType.deleteSubtype(parseInt(id));
+    // Проверяем существование записи
+    const existingType = await Database.get('SELECT * FROM equipment_types WHERE id = ?', [id]);
+    if (!existingType) {
+      return res.status(404).json({
+        success: false,
+        message: 'Тип техники не найден'
+      });
+    }
+
+    // Проверяем, используется ли этот тип в существующей технике
+    const equipmentCount = await Database.get(`
+      SELECT COUNT(*) as count 
+      FROM equipment 
+      WHERE type = ? AND subtype = ?
+    `, [existingType.type, existingType.subtype]);
+    
+    if (equipmentCount.count > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Нельзя удалить тип техники, используемый в ${equipmentCount.count} единицах техники`
+      });
+    }
+
+    await Database.run('DELETE FROM equipment_types WHERE id = ?', [id]);
+    
+    logger.info('Удален тип техники', { 
+      id,
+      type: existingType.type, 
+      subtype: existingType.subtype, 
+      userId: req.user.id 
+    });
     
     res.json({
       success: true,
-      message: 'Подтип техники удален успешно',
-      result: result
+      message: 'Тип техники удален успешно'
     });
     
   } catch (error) {
+    logger.error('Ошибка удаления типа техники', {
+      error: error.message,
+      stack: error.stack
+    });
+    next(error);
+  }
+});
+
+// POST /api/equipment/types/batch - Массовое создание типов и подтипов
+router.post('/types/batch', requireOwner, async (req, res, next) => {
+  try {
+    const { types } = req.body;
+    
+    if (!Array.isArray(types) || types.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Необходим массив типов техники'
+      });
+    }
+
+    const created = [];
+    const errors = [];
+    
+    for (const typeData of types) {
+      try {
+        const { type, subtype, characteristics, is_off_road, additional_options } = typeData;
+        
+        if (!type || !subtype) {
+          errors.push({ type: typeData, error: 'Тип и подтип обязательны' });
+          continue;
+        }
+
+        const sql = `
+          INSERT OR IGNORE INTO equipment_types (type, subtype, characteristics, is_off_road, additional_options)
+          VALUES (?, ?, ?, ?, ?)
+        `;
+        
+        const result = await Database.run(sql, [
+          type,
+          subtype,
+          characteristics || null,
+          is_off_road ? 1 : 0,
+          additional_options || null
+        ]);
+        
+        if (result.changes > 0) {
+          const createdType = await Database.get('SELECT * FROM equipment_types WHERE id = ?', [result.lastID]);
+          created.push(createdType);
+        }
+        
+      } catch (error) {
+        errors.push({ type: typeData, error: error.message });
+      }
+    }
+    
+    logger.info('Массовое создание типов техники', { 
+      created: created.length,
+      errors: errors.length,
+      userId: req.user.id 
+    });
+    
+    res.json({
+      success: true,
+      message: `Создано ${created.length} типов техники`,
+      created: created,
+      errors: errors
+    });
+    
+  } catch (error) {
+    logger.error('Ошибка массового создания типов техники', {
+      error: error.message,
+      stack: error.stack
+    });
     next(error);
   }
 });
