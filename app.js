@@ -1575,6 +1575,17 @@ function setupAddEquipmentModal() {
     populateEquipmentTypes(); // Заполняем типы при открытии модала
     document.getElementById('equipment-owner').value = appData.currentUser.name;
     document.getElementById('equipment-phone').value = appData.currentUser.phone || '';
+    
+    // Автоматическая подстановка Telegram ID или placeholder
+    const telegramField = document.getElementById('equipment-telegram');
+    if (appData.currentUser.telegram_id) {
+      telegramField.value = appData.currentUser.telegram_id;
+      telegramField.placeholder = '';
+    } else {
+      telegramField.value = '';
+      telegramField.placeholder = '@username или ID';
+    }
+    
     showModal('add-equipment-modal');
   };
   
