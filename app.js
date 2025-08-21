@@ -264,9 +264,9 @@ window.editCompany = async function(companyId) {
   } catch (error) {
     console.error('Ошибка при загрузке данных компании:', error);
     
-    if (window.notificationManager) {
+  if (window.notificationManager) {
       window.notificationManager.show('Ошибка при загрузке данных компании: ' + error.message, 'error');
-    } else {
+  } else {
       alert('Ошибка при загрузке данных компании: ' + error.message);
     }
   }
@@ -2976,6 +2976,9 @@ function setupTypesManagement() {
 function setupManageTypesModal() {
   console.log('Настройка модального окна управления типами');
   
+  // Настройка табов
+  setupTypesModalTabs();
+  
   // Используем делегирование событий, так как кнопки создаются динамически
   const modal = document.getElementById('manage-types-modal');
   if (modal) {
@@ -2991,6 +2994,21 @@ function setupManageTypesModal() {
         e.preventDefault();
         console.log('Клик по кнопке обновления');
         loadTypesManagement();
+      }
+      
+      if (e.target.id === 'refresh-delete-list') {
+        e.preventDefault();
+        console.log('Клик по кнопке обновления списка удаления');
+        loadDeleteTypesList();
+      }
+      
+      // Обработка кнопок удаления типов
+      if (e.target.classList.contains('delete-type-btn')) {
+        e.preventDefault();
+        const typeId = e.target.dataset.typeId;
+        const typeName = e.target.dataset.typeName;
+        const subtypeName = e.target.dataset.subtypeName;
+        deleteTypeWithConfirmation(typeId, typeName, subtypeName);
       }
     });
   }
@@ -3026,6 +3044,20 @@ async function loadTypesManagement() {
         <p>Не удалось загрузить типы техники</p>
       </div>
     `;
+  }
+}
+
+// Инициализация модального окна управления типами при первом открытии
+function initializeTypesManagementModal() {
+  // Загружаем контент активного таба
+  const activeTab = document.querySelector('.types-tab.active');
+  if (activeTab) {
+    const tabName = activeTab.dataset.tab;
+    if (tabName === 'manage') {
+      loadTypesManagement();
+    } else if (tabName === 'delete') {
+      loadDeleteTypesList();
+    }
   }
 }
 
@@ -3466,7 +3498,7 @@ function handleManageTypesClick(e) {
   e.preventDefault();
   e.stopPropagation();
   console.log('Клик по кнопке управления типами');
-  showModal('manage-types-modal', loadTypesManagement);
+  showModal('manage-types-modal', initializeTypesManagementModal);
 }
 
 function handleAddNewTypeClick(e) {
@@ -3505,6 +3537,250 @@ window.forceSetupTypes = function() {
   console.log('Принудительная настройка управления типами...');
   setupTypesManagementInModal();
 };
+
+// === ФУНКЦИИ ДЛЯ РАБОТЫ С ТАБАМИ ===
+
+// Настройка табов в модальном окне управления типами
+function setupTypesModalTabs() {
+  const tabs = document.querySelectorAll('.types-tab');
+  const contents = document.querySelectorAll('.types-tab-content');
+  
+  tabs.forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetTab = tab.dataset.tab;
+      
+      // Убираем активность со всех табов и контента
+      tabs.forEach(t => t.classList.remove('active'));
+      contents.forEach(c => c.classList.remove('active'));
+      
+      // Активируем нужный таб и контент
+      tab.classList.add('active');
+      document.getElementById(targetTab + '-tab').classList.add('active');
+      
+      // Загружаем контент в зависимости от таба
+      if (targetTab === 'manage') {
+        loadTypesManagement();
+      } else if (targetTab === 'delete') {
+        loadDeleteTypesList();
+      }
+    });
+  });
+}
+
+// === ФУНКЦИИ ДЛЯ УДАЛЕНИЯ ТИПОВ ===
+
+// Загрузка списка типов для удаления
+async function loadDeleteTypesList() {
+  const container = document.getElementById('delete-types-list');
+  const filterSelect = document.getElementById('delete-type-filter');
+  
+  if (!container) return;
+
+  container.innerHTML = '<div class="loading-spinner">Загрузка типов для удаления...</div>';
+
+  try {
+    const response = await apiRequest('/equipment/types-management');
+    
+    if (response.success && response.types.length > 0) {
+      // Заполняем фильтр типов
+      populateDeleteTypeFilter(response.types, filterSelect);
+      
+      // Рендерим список для удаления
+      renderDeleteTypesList(response.types);
+    } else {
+      container.innerHTML = `
+        <div class="types-empty">
+          <div class="types-empty-icon">🗑️</div>
+          <h3>Нет типов для удаления</h3>
+          <p>Список типов техники пуст</p>
+        </div>
+      `;
+    }
+  } catch (error) {
+    console.error('Ошибка загрузки типов для удаления:', error);
+    container.innerHTML = `
+      <div class="types-empty">
+        <div class="types-empty-icon">❌</div>
+        <h3>Ошибка загрузки</h3>
+        <p>Не удалось загрузить список типов</p>
+      </div>
+    `;
+  }
+}
+
+// Заполнение фильтра типов
+function populateDeleteTypeFilter(types, filterSelect) {
+  if (!filterSelect) return;
+  
+  // Получаем уникальные типы
+  const uniqueTypes = [...new Set(types.map(type => type.type))];
+  
+  filterSelect.innerHTML = '<option value="">Показать все типы</option>';
+  uniqueTypes.forEach(typeName => {
+    const option = document.createElement('option');
+    option.value = typeName;
+    option.textContent = typeName;
+    filterSelect.appendChild(option);
+  });
+  
+  // Добавляем обработчик фильтрации
+  filterSelect.onchange = () => {
+    const selectedType = filterSelect.value;
+    const filteredTypes = selectedType ? types.filter(type => type.type === selectedType) : types;
+    renderDeleteTypesList(filteredTypes);
+  };
+}
+
+// Рендеринг списка для удаления
+function renderDeleteTypesList(types) {
+  const container = document.getElementById('delete-types-list');
+  if (!container) return;
+
+  if (types.length === 0) {
+    container.innerHTML = `
+      <div class="types-empty">
+        <div class="types-empty-icon">🔍</div>
+        <h3>Ничего не найдено</h3>
+        <p>Попробуйте изменить фильтр</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Группируем по типам
+  const grouped = {};
+  types.forEach(type => {
+    if (!grouped[type.type]) {
+      grouped[type.type] = [];
+    }
+    grouped[type.type].push(type);
+  });
+
+  let html = '';
+  Object.keys(grouped).forEach(typeName => {
+    html += `
+      <div class="delete-type-group">
+        <div class="delete-group-header">
+          <span>${typeName}</span>
+          <span class="delete-group-count">${grouped[typeName].length}</span>
+        </div>
+        ${grouped[typeName].map(type => renderDeleteTypeItem(type)).join('')}
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+  
+  // Загружаем информацию об использовании для каждого типа
+  types.forEach(type => {
+    loadTypeUsageInfo(type.id);
+  });
+}
+
+// Загрузка информации об использовании типа
+async function loadTypeUsageInfo(typeId) {
+  try {
+    const response = await apiRequest(`/equipment/types/${typeId}/usage`);
+    
+    if (response.success) {
+      const usageSpan = document.getElementById(`usage-${typeId}`);
+      const deleteBtn = document.querySelector(`[data-type-id="${typeId}"].delete-type-btn`);
+      
+      if (usageSpan) {
+        const usageCount = response.usageCount;
+        const hasUsage = usageCount > 0;
+        
+        usageSpan.textContent = `📊 Используется: ${usageCount} ед.`;
+        usageSpan.className = `usage-count ${hasUsage ? 'has-usage' : ''}`;
+        
+        if (deleteBtn) {
+          if (hasUsage) {
+            deleteBtn.disabled = true;
+            deleteBtn.title = `Нельзя удалить: используется в ${usageCount} единице техники`;
+          } else {
+            deleteBtn.disabled = false;
+            deleteBtn.title = 'Удалить тип техники';
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error(`Ошибка загрузки информации об использовании для типа ${typeId}:`, error);
+    
+    const usageSpan = document.getElementById(`usage-${typeId}`);
+    if (usageSpan) {
+      usageSpan.textContent = '📊 Ошибка загрузки';
+      usageSpan.className = 'usage-count';
+    }
+  }
+}
+
+// Рендеринг элемента для удаления
+function renderDeleteTypeItem(type) {
+  // Будем загружать информацию об использовании асинхронно
+  return `
+    <div class="delete-type-item" data-type-id="${type.id}">
+      <div class="delete-type-info">
+        <h4 class="delete-type-name">${type.type}</h4>
+        <p class="delete-subtype-name">${type.subtype}</p>
+        <div class="delete-type-details">
+          <span class="usage-count" id="usage-${type.id}">
+            📊 Проверка использования...
+          </span>
+          <span>Создано: ${new Date(type.created_at).toLocaleDateString('ru-RU')}</span>
+        </div>
+      </div>
+      <div class="delete-type-actions">
+        <button 
+          class="delete-type-btn" 
+          data-type-id="${type.id}"
+          data-type-name="${type.type}"
+          data-subtype-name="${type.subtype}"
+          disabled
+          title="Проверка использования..."
+        >
+          🗑️ Удалить
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// Удаление типа с подтверждением
+async function deleteTypeWithConfirmation(typeId, typeName, subtypeName) {
+  const confirmMessage = `Вы уверены, что хотите удалить "${typeName} - ${subtypeName}"?\n\nЭто действие необратимо!`;
+  
+  if (!confirm(confirmMessage)) {
+    return;
+  }
+
+  try {
+    const response = await apiRequest(`/equipment/types/${typeId}`, {
+      method: 'DELETE'
+    });
+
+    if (response.success) {
+      // Обновляем список удаления
+      await loadDeleteTypesList();
+      
+      // Обновляем основной список (если он загружен)
+      if (document.getElementById('manage-tab').classList.contains('active')) {
+        await loadTypesManagement();
+      }
+      
+      // Обновляем списки типов в формах
+      await loadEquipmentTypes();
+      
+      alert(`Тип "${typeName} - ${subtypeName}" успешно удален`);
+    } else {
+      alert('Ошибка при удалении: ' + response.message);
+    }
+  } catch (error) {
+    console.error('Ошибка удаления типа:', error);
+    alert('Произошла ошибка при удалении типа техники');
+  }
+}
 
 console.log('Система управления типами техники загружена');
 console.log('Доступные функции для тестирования:');

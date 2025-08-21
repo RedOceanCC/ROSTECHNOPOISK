@@ -710,18 +710,60 @@
                     <button class="modal-close">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <div class="types-management-container">
-                        <div class="types-controls">
-                            <button class="btn btn--primary" id="add-type-btn">
-                                <span>+</span> Добавить тип
-                            </button>
-                            <button class="btn btn--secondary" id="refresh-types-btn">
-                                🔄 Обновить
-                            </button>
+                    <!-- Табы -->
+                    <div class="types-tabs">
+                        <button class="types-tab active" data-tab="manage">
+                            📋 Просмотр и редактирование
+                        </button>
+                        <button class="types-tab" data-tab="delete">
+                            🗑️ Удаление типов
+                        </button>
+                    </div>
+
+                    <!-- Контент для таба "Просмотр и редактирование" -->
+                    <div class="types-tab-content active" id="manage-tab">
+                        <div class="types-management-container">
+                            <div class="types-controls">
+                                <button class="btn btn--primary" id="add-type-btn">
+                                    <span>+</span> Добавить тип
+                                </button>
+                                <button class="btn btn--secondary" id="refresh-types-btn">
+                                    🔄 Обновить
+                                </button>
+                            </div>
+                            
+                            <div class="types-list" id="types-management-list">
+                                <div class="loading-spinner">Загрузка типов техники...</div>
+                            </div>
                         </div>
-                        
-                        <div class="types-list" id="types-management-list">
-                            <div class="loading-spinner">Загрузка типов техники...</div>
+                    </div>
+
+                    <!-- Контент для таба "Удаление типов" -->
+                    <div class="types-tab-content" id="delete-tab">
+                        <div class="delete-types-container">
+                            <div class="delete-warning">
+                                <div class="warning-icon">⚠️</div>
+                                <div class="warning-text">
+                                    <strong>Внимание!</strong> Удаление типов и подтипов необратимо. 
+                                    Убедитесь, что эти типы не используются в существующей технике.
+                                </div>
+                            </div>
+                            
+                            <div class="delete-controls">
+                                <div class="delete-filter-section">
+                                    <label class="form-label">Фильтр по типу:</label>
+                                    <select id="delete-type-filter" class="form-control">
+                                        <option value="">Показать все типы</option>
+                                    </select>
+                                </div>
+                                <button class="btn btn--secondary" id="refresh-delete-list">
+                                    🔄 Обновить список
+                                </button>
+                            </div>
+                            
+                            <div class="delete-types-list" id="delete-types-list">
+                                <div class="loading-spinner">Загрузка типов для удаления...</div>
+                            </div>
                         </div>
                     </div>
                 </div>

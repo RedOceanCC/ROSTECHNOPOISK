@@ -734,4 +734,42 @@ router.post('/types/batch', requireOwner, async (req, res, next) => {
   }
 });
 
+// GET /api/equipment/types/:id/usage - Проверить использование типа техники
+router.get('/types/:id/usage', requireAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    // Получаем информацию о типе
+    const typeQuery = 'SELECT * FROM equipment_types WHERE id = ?';
+    const typeInfo = await Database.get(typeQuery, [id]);
+    
+    if (!typeInfo) {
+      return res.status(404).json({
+        success: false,
+        message: 'Тип техники не найден'
+      });
+    }
+    
+    // Проверяем использование в существующей технике
+    const usageQuery = 'SELECT COUNT(*) as count FROM equipment WHERE type = ? AND subtype = ?';
+    const usageResult = await Database.get(usageQuery, [typeInfo.type, typeInfo.subtype]);
+    const usageCount = usageResult.count;
+    
+    res.json({
+      success: true,
+      typeInfo: typeInfo,
+      usageCount: usageCount,
+      canDelete: usageCount === 0
+    });
+    
+  } catch (error) {
+    console.error('Ошибка при проверке использования типа:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка сервера при проверке использования типа',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
