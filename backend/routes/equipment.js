@@ -159,304 +159,6 @@ router.get('/available', async (req, res, next) => {
   }
 });
 
-// GET /api/equipment/:id - Получить технику по ID
-router.get('/:id', async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    
-    const equipment = await Equipment.findById(id);
-    
-    if (!equipment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Техника не найдена'
-      });
-    }
-    
-    // Проверяем права доступа
-    if (req.user.role !== 'admin' && req.user.id !== equipment.owner_id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Доступ запрещен'
-      });
-    }
-    
-    res.json({
-      success: true,
-      equipment: equipment
-    });
-    
-  } catch (error) {
-    next(error);
-  }
-});
-
-// POST /api/equipment - Добавить технику (только владельцы)
-router.post('/',
-  requireOwner,
-  validateRequired(['name', 'type', 'subtype', 'phone']),
-  async (req, res, next) => {
-    try {
-      const {
-        name, type, subtype, phone, telegram_id, license_plate,
-        is_off_road, additional_equipment, description, hourly_rate, daily_rate, location
-      } = req.body;
-      
-      const equipmentData = {
-        name,
-        type,
-        subtype,
-        owner_id: req.user.id, // Автоматически устанавливаем владельца
-        phone,
-        telegram_id: telegram_id || null,
-        license_plate: license_plate || null,
-        is_off_road: is_off_road || false,
-        additional_equipment: additional_equipment || null,
-        description: description || null,
-        hourly_rate: hourly_rate ? parseFloat(hourly_rate) : null,
-        daily_rate: daily_rate ? parseFloat(daily_rate) : null,
-        location: location || null
-      };
-      
-      const equipment = await Equipment.create(equipmentData);
-      
-      res.status(201).json({
-        success: true,
-        message: 'Техника добавлена успешно',
-        equipment: equipment
-      });
-      
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-// PUT /api/equipment/:id - Обновить технику
-router.put('/:id', async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    
-    // Проверяем существование техники и права доступа
-    const existingEquipment = await Equipment.findById(id);
-    
-    if (!existingEquipment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Техника не найдена'
-      });
-    }
-    
-    // Проверяем права доступа
-    if (req.user.role !== 'admin' && req.user.id !== existingEquipment.owner_id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Доступ запрещен'
-      });
-    }
-    
-    const {
-      name, type, subtype, phone, telegram_id, license_plate,
-      is_off_road, additional_equipment, description, hourly_rate, daily_rate, location, status
-    } = req.body;
-    
-    const updateData = {
-      name: name || existingEquipment.name,
-      type: type || existingEquipment.type,
-      subtype: subtype || existingEquipment.subtype,
-      phone: phone || existingEquipment.phone,
-      telegram_id: telegram_id !== undefined ? telegram_id : existingEquipment.telegram_id,
-      license_plate: license_plate !== undefined ? license_plate : existingEquipment.license_plate,
-      is_off_road: is_off_road !== undefined ? is_off_road : existingEquipment.is_off_road,
-      additional_equipment: additional_equipment !== undefined ? additional_equipment : existingEquipment.additional_equipment,
-      description: description !== undefined ? description : existingEquipment.description,
-      hourly_rate: hourly_rate !== undefined ? (hourly_rate ? parseFloat(hourly_rate) : null) : existingEquipment.hourly_rate,
-      daily_rate: daily_rate !== undefined ? (daily_rate ? parseFloat(daily_rate) : null) : existingEquipment.daily_rate,
-      location: location !== undefined ? location : existingEquipment.location,
-      status: status || existingEquipment.status
-    };
-    
-    // Только админ может изменять статус
-    if (req.user.role !== 'admin') {
-      updateData.status = existingEquipment.status;
-    }
-    
-    const equipment = await Equipment.update(id, updateData);
-    
-    res.json({
-      success: true,
-      message: 'Техника обновлена успешно',
-      equipment: equipment
-    });
-    
-  } catch (error) {
-    next(error);
-  }
-});
-
-// PATCH /api/equipment/:id/status - Обновить статус техники (только админ)
-router.patch('/:id/status', async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-    
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Только администратор может изменять статус техники'
-      });
-    }
-    
-    const validStatuses = ['available', 'busy', 'maintenance'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Неверный статус техники'
-      });
-    }
-    
-    const updated = await Equipment.updateStatus(id, status);
-    
-    if (!updated) {
-      return res.status(404).json({
-        success: false,
-        message: 'Техника не найдена'
-      });
-    }
-    
-    res.json({
-      success: true,
-      message: 'Статус техники обновлен успешно'
-    });
-    
-  } catch (error) {
-    next(error);
-  }
-});
-
-// DELETE /api/equipment/:id - Удалить технику
-router.delete('/:id', async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    
-    // Проверяем существование техники и права доступа
-    const existingEquipment = await Equipment.findById(id);
-    
-    if (!existingEquipment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Техника не найдена'
-      });
-    }
-    
-    // Проверяем права доступа
-    if (req.user.role !== 'admin' && req.user.id !== existingEquipment.owner_id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Доступ запрещен'
-      });
-    }
-    
-    // Проверяем, что техника не используется в активных заявках
-    if (existingEquipment.status === 'busy') {
-      return res.status(400).json({
-        success: false,
-        message: 'Нельзя удалить технику, которая используется в активной заявке'
-      });
-    }
-    
-    const deleted = await Equipment.delete(id);
-    
-    if (!deleted) {
-      return res.status(404).json({
-        success: false,
-        message: 'Техника не найдена'
-      });
-    }
-    
-    res.json({
-      success: true,
-      message: 'Техника удалена успешно'
-    });
-    
-  } catch (error) {
-    next(error);
-  }
-});
-
-// GET /api/equipment/search - Поиск техники по типу
-router.get('/search/by-type', async (req, res, next) => {
-  try {
-    const { type, subtype } = req.query;
-    
-    if (!type) {
-      return res.status(400).json({
-        success: false,
-        message: 'Параметр type обязателен'
-      });
-    }
-    
-    const equipment = await Equipment.findByType(type, subtype);
-    
-    res.json({
-      success: true,
-      equipment: equipment
-    });
-    
-  } catch (error) {
-    next(error);
-  }
-});
-
-// GET /api/equipment/stats - Получить статистику по технике (только админ)
-router.get('/admin/stats', async (req, res, next) => {
-  try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Доступ запрещен'
-      });
-    }
-    
-    const stats = await Equipment.getStats();
-    const popularTypes = await Equipment.getPopularTypes();
-    
-    res.json({
-      success: true,
-      stats: stats,
-      popular_types: popularTypes
-    });
-    
-  } catch (error) {
-    next(error);
-  }
-});
-
-// GET /api/equipment/owner/:ownerId - Получить технику владельца
-router.get('/owner/:ownerId', async (req, res, next) => {
-  try {
-    const { ownerId } = req.params;
-    
-    // Проверяем права доступа
-    if (req.user.role !== 'admin' && req.user.id !== parseInt(ownerId)) {
-      return res.status(403).json({
-        success: false,
-        message: 'Доступ запрещен'
-      });
-    }
-    
-    const equipment = await Equipment.findByOwnerId(ownerId);
-    
-    res.json({
-      success: true,
-      equipment: equipment
-    });
-    
-  } catch (error) {
-    next(error);
-  }
-});
-
 // === УПРАВЛЕНИЕ ТИПАМИ ТЕХНИКИ ===
 
 // GET /api/equipment/types-management - Получить все типы и подтипы для управления
@@ -771,5 +473,305 @@ router.get('/types/:id/usage', requireAuth, async (req, res, next) => {
     });
   }
 });
+
+// GET /api/equipment/:id - Получить технику по ID
+router.get('/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    const equipment = await Equipment.findById(id);
+    
+    if (!equipment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Техника не найдена'
+      });
+    }
+    
+    // Проверяем права доступа
+    if (req.user.role !== 'admin' && req.user.id !== equipment.owner_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Доступ запрещен'
+      });
+    }
+    
+    res.json({
+      success: true,
+      equipment: equipment
+    });
+    
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/equipment - Добавить технику (только владельцы)
+router.post('/',
+  requireOwner,
+  validateRequired(['name', 'type', 'subtype', 'phone']),
+  async (req, res, next) => {
+    try {
+      const {
+        name, type, subtype, phone, telegram_id, license_plate,
+        is_off_road, additional_equipment, description, hourly_rate, daily_rate, location
+      } = req.body;
+      
+      const equipmentData = {
+        name,
+        type,
+        subtype,
+        owner_id: req.user.id, // Автоматически устанавливаем владельца
+        phone,
+        telegram_id: telegram_id || null,
+        license_plate: license_plate || null,
+        is_off_road: is_off_road || false,
+        additional_equipment: additional_equipment || null,
+        description: description || null,
+        hourly_rate: hourly_rate ? parseFloat(hourly_rate) : null,
+        daily_rate: daily_rate ? parseFloat(daily_rate) : null,
+        location: location || null
+      };
+      
+      const equipment = await Equipment.create(equipmentData);
+      
+      res.status(201).json({
+        success: true,
+        message: 'Техника добавлена успешно',
+        equipment: equipment
+      });
+      
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// PUT /api/equipment/:id - Обновить технику
+router.put('/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    // Проверяем существование техники и права доступа
+    const existingEquipment = await Equipment.findById(id);
+    
+    if (!existingEquipment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Техника не найдена'
+      });
+    }
+    
+    // Проверяем права доступа
+    if (req.user.role !== 'admin' && req.user.id !== existingEquipment.owner_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Доступ запрещен'
+      });
+    }
+    
+    const {
+      name, type, subtype, phone, telegram_id, license_plate,
+      is_off_road, additional_equipment, description, hourly_rate, daily_rate, location, status
+    } = req.body;
+    
+    const updateData = {
+      name: name || existingEquipment.name,
+      type: type || existingEquipment.type,
+      subtype: subtype || existingEquipment.subtype,
+      phone: phone || existingEquipment.phone,
+      telegram_id: telegram_id !== undefined ? telegram_id : existingEquipment.telegram_id,
+      license_plate: license_plate !== undefined ? license_plate : existingEquipment.license_plate,
+      is_off_road: is_off_road !== undefined ? is_off_road : existingEquipment.is_off_road,
+      additional_equipment: additional_equipment !== undefined ? additional_equipment : existingEquipment.additional_equipment,
+      description: description !== undefined ? description : existingEquipment.description,
+      hourly_rate: hourly_rate !== undefined ? (hourly_rate ? parseFloat(hourly_rate) : null) : existingEquipment.hourly_rate,
+      daily_rate: daily_rate !== undefined ? (daily_rate ? parseFloat(daily_rate) : null) : existingEquipment.daily_rate,
+      location: location !== undefined ? location : existingEquipment.location,
+      status: status || existingEquipment.status
+    };
+    
+    // Только админ может изменять статус
+    if (req.user.role !== 'admin') {
+      updateData.status = existingEquipment.status;
+    }
+    
+    const equipment = await Equipment.update(id, updateData);
+    
+    res.json({
+      success: true,
+      message: 'Техника обновлена успешно',
+      equipment: equipment
+    });
+    
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PATCH /api/equipment/:id/status - Обновить статус техники (только админ)
+router.patch('/:id/status', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Только администратор может изменять статус техники'
+      });
+    }
+    
+    const validStatuses = ['available', 'busy', 'maintenance'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Неверный статус техники'
+      });
+    }
+    
+    const updated = await Equipment.updateStatus(id, status);
+    
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        message: 'Техника не найдена'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Статус техники обновлен успешно'
+    });
+    
+  } catch (error) {
+    next(error);
+  }
+});
+
+// DELETE /api/equipment/:id - Удалить технику
+router.delete('/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    // Проверяем существование техники и права доступа
+    const existingEquipment = await Equipment.findById(id);
+    
+    if (!existingEquipment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Техника не найдена'
+      });
+    }
+    
+    // Проверяем права доступа
+    if (req.user.role !== 'admin' && req.user.id !== existingEquipment.owner_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Доступ запрещен'
+      });
+    }
+    
+    // Проверяем, что техника не используется в активных заявках
+    if (existingEquipment.status === 'busy') {
+      return res.status(400).json({
+        success: false,
+        message: 'Нельзя удалить технику, которая используется в активной заявке'
+      });
+    }
+    
+    const deleted = await Equipment.delete(id);
+    
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        message: 'Техника не найдена'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Техника удалена успешно'
+    });
+    
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /api/equipment/search - Поиск техники по типу
+router.get('/search/by-type', async (req, res, next) => {
+  try {
+    const { type, subtype } = req.query;
+    
+    if (!type) {
+      return res.status(400).json({
+        success: false,
+        message: 'Параметр type обязателен'
+      });
+    }
+    
+    const equipment = await Equipment.findByType(type, subtype);
+    
+    res.json({
+      success: true,
+      equipment: equipment
+    });
+    
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /api/equipment/stats - Получить статистику по технике (только админ)
+router.get('/admin/stats', async (req, res, next) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Доступ запрещен'
+      });
+    }
+    
+    const stats = await Equipment.getStats();
+    const popularTypes = await Equipment.getPopularTypes();
+    
+    res.json({
+      success: true,
+      stats: stats,
+      popular_types: popularTypes
+    });
+    
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /api/equipment/owner/:ownerId - Получить технику владельца
+router.get('/owner/:ownerId', async (req, res, next) => {
+  try {
+    const { ownerId } = req.params;
+    
+    // Проверяем права доступа
+    if (req.user.role !== 'admin' && req.user.id !== parseInt(ownerId)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Доступ запрещен'
+      });
+    }
+    
+    const equipment = await Equipment.findByOwnerId(ownerId);
+    
+    res.json({
+      success: true,
+      equipment: equipment
+    });
+    
+  } catch (error) {
+    next(error);
+  }
+});
+
+
 
 module.exports = router;
