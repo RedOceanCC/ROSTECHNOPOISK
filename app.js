@@ -159,7 +159,14 @@ window.deleteUser = async function(userId) {
       await renderUsersTable();
       alert('Пользователь удален успешно');
     } catch (error) {
-      alert('Ошибка при удалении пользователя: ' + error.message);
+      // Если пользователь не найден (404), просто обновляем список
+      if (error.message.includes('Пользователь не найден') || error.message.includes('404')) {
+        console.log('Пользователь уже был удален, обновляем список');
+        await renderUsersTable();
+        alert('Пользователь удален');
+      } else {
+        alert('Ошибка при удалении пользователя: ' + error.message);
+      }
     }
   }
 };
@@ -573,22 +580,15 @@ async function renderUsersTable() {
     if (response.success) {
       tbody.innerHTML = '';
       
-      // Дебаг информация
-      console.log('Все пользователи с сервера:', response.users);
-      response.users.forEach(user => {
-        console.log(`Пользователь ${user.name}: статус = "${user.status}"`);
-      });
+      // Теперь сервер уже возвращает только активных пользователей
+      const users = response.users;
       
-      // Фильтруем только активных пользователей (скрываем удаленных)
-      const activeUsers = response.users.filter(user => user.status === 'active');
-      console.log('Активные пользователи после фильтрации:', activeUsers);
-      
-      if (activeUsers.length === 0) {
+      if (users.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center">Нет активных пользователей</td></tr>';
         return;
       }
       
-      activeUsers.forEach(user => {
+      users.forEach(user => {
         const row = document.createElement('tr');
         const statusLabel = user.status === 'active' ? 
           '<span class="badge badge--success">Активный</span>' : 

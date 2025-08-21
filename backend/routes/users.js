@@ -10,11 +10,14 @@ router.use(requireAuth);
 // GET /api/users - Получить список пользователей (только админ)
 router.get('/', requireAdmin, async (req, res, next) => {
   try {
-    const users = await User.findAll();
+    const allUsers = await User.findAll();
+    
+    // Фильтруем только активных пользователей (скрываем удаленных)
+    const activeUsers = allUsers.filter(user => user.status === 'active');
     
     res.json({
       success: true,
-      users: users
+      users: activeUsers
     });
     
   } catch (error) {
