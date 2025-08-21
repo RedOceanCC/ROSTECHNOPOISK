@@ -238,11 +238,37 @@ window.deleteCompany = async function(companyId) {
   }
 };
 
-window.editCompany = function(companyId) {
-  if (window.notificationManager) {
-    window.notificationManager.show('Функция редактирования будет добавлена в следующих версиях', 'info');
-  } else {
-    alert('Функция редактирования будет добавлена в следующих версиях');
+window.editCompany = async function(companyId) {
+  try {
+    console.log('Загружаем данные компании для редактирования:', companyId);
+    
+    // Получаем данные компании
+    const response = await apiRequest(`/companies/${companyId}`);
+    if (!response.success) {
+      throw new Error(response.message);
+    }
+    
+    const company = response.company;
+    console.log('Данные компании получены:', company);
+    
+    // Заполняем форму
+    document.getElementById('edit-company-id').value = company.id;
+    document.getElementById('edit-company-name').value = company.name;
+    document.getElementById('edit-company-description').value = company.description || '';
+    document.getElementById('edit-company-contact').value = company.contact_info || '';
+    document.getElementById('edit-company-status').value = company.status || 'active';
+    
+    // Открываем модальное окно
+    showModal('edit-company-modal');
+    
+  } catch (error) {
+    console.error('Ошибка при загрузке данных компании:', error);
+    
+    if (window.notificationManager) {
+      window.notificationManager.show('Ошибка при загрузке данных компании: ' + error.message, 'error');
+    } else {
+      alert('Ошибка при загрузке данных компании: ' + error.message);
+    }
   }
 };
 
@@ -564,6 +590,7 @@ async function initAdminDashboard() {
   setupCreateUserModal();
   setupEditUserModal();
   setupCreateCompanyModal();
+  setupEditCompanyModal();
 
   // Запускаем автообновление
   realTimeUpdater.start('admin-dashboard');
@@ -955,6 +982,74 @@ function setupCreateCompanyModal() {
         window.notificationManager.show('Ошибка при создании компании: ' + error.message, 'error');
       } else {
         alert('Ошибка при создании компании: ' + error.message);
+      }
+    }
+  };
+}
+
+// Настройка модального окна редактирования компании
+function setupEditCompanyModal() {
+  const modal = document.getElementById('edit-company-modal');
+  const form = document.getElementById('edit-company-form');
+  
+  if (!modal || !form) {
+    console.warn('Элементы модального окна редактирования компании не найдены');
+    return;
+  }
+  
+  // Настройка кнопок закрытия
+  modal.querySelector('.modal-close').onclick = () => hideModal('edit-company-modal');
+  modal.querySelector('.modal-cancel').onclick = () => hideModal('edit-company-modal');
+  modal.querySelector('.modal-backdrop').onclick = () => hideModal('edit-company-modal');
+  
+  // Обработка отправки формы
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    
+    const companyId = document.getElementById('edit-company-id').value;
+    const updateData = {
+      name: document.getElementById('edit-company-name').value.trim(),
+      description: document.getElementById('edit-company-description').value.trim(),
+      contact_info: document.getElementById('edit-company-contact').value.trim(),
+      status: document.getElementById('edit-company-status').value
+    };
+    
+    if (!updateData.name) {
+      alert('Название компании обязательно');
+      return;
+    }
+    
+    try {
+      console.log('Отправляем данные для обновления компании:', updateData);
+      
+      const response = await apiRequest(`/companies/${companyId}`, {
+        method: 'PUT',
+        body: JSON.stringify(updateData)
+      });
+      
+      if (response.success) {
+        await renderCompaniesTable();
+        hideModal('edit-company-modal');
+        form.reset();
+        
+        // Показываем уведомление
+        if (window.notificationManager) {
+          window.notificationManager.show('Компания обновлена успешно', 'success');
+        } else {
+          alert('Компания обновлена успешно');
+        }
+        
+        console.log('Компания успешно обновлена');
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error) {
+      console.error('Ошибка обновления компании:', error);
+      
+      if (window.notificationManager) {
+        window.notificationManager.show('Ошибка при обновлении компании: ' + error.message, 'error');
+      } else {
+        alert('Ошибка при обновлении компании: ' + error.message);
       }
     }
   };
@@ -2781,6 +2876,7 @@ document.addEventListener('DOMContentLoaded', function() {
   setupCreateUserModal();
   setupEditUserModal();
   setupCreateCompanyModal();
+  setupEditCompanyModal();
   setupAuctionResultsModal();
 
   // Добавляем демо уведомления для тестирования (только в dev-режиме)

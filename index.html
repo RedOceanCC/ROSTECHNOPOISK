@@ -487,6 +487,43 @@
             </div>
         </div>
 
+        <!-- Модальное окно редактирования компании -->
+        <div id="edit-company-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content card">
+                <div class="modal-header">
+                    <h3>Редактировать компанию</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <form id="edit-company-form" class="modal-body">
+                    <input type="hidden" id="edit-company-id">
+                    <div class="form-group">
+                        <label class="form-label">Название компании *</label>
+                        <input type="text" id="edit-company-name" class="form-control" placeholder="Например: ООО СтройТехника" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Описание</label>
+                        <textarea id="edit-company-description" class="form-control" rows="3" placeholder="Краткое описание деятельности компании"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Контактная информация</label>
+                        <textarea id="edit-company-contact" class="form-control" rows="2" placeholder="Адрес, телефон, email"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Статус</label>
+                        <select id="edit-company-status" class="form-control">
+                            <option value="active">Активная</option>
+                            <option value="inactive">Неактивная</option>
+                        </select>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn--secondary modal-cancel">Отмена</button>
+                        <button type="submit" class="btn btn--primary">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- Модальное окно добавления техники -->
         <div id="add-equipment-modal" class="modal hidden">
             <div class="modal-backdrop"></div>

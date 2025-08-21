@@ -9,11 +9,7 @@ router.use(requireAuth);
 // GET /api/companies - Получить список компаний
 router.get('/', async (req, res, next) => {
   try {
-    console.log('🔍 GET /api/companies вызван пользователем:', req.user ? req.user.name : 'неизвестен');
-    
     const companies = await Company.findAll();
-    
-    console.log('📤 Отправляем ответ с количеством компаний:', companies.length);
     
     res.json({
       success: true,
@@ -21,7 +17,7 @@ router.get('/', async (req, res, next) => {
     });
     
   } catch (error) {
-    console.error('❌ Ошибка в GET /api/companies:', error);
+    console.error('Ошибка в GET /api/companies:', error);
     next(error);
   }
 });

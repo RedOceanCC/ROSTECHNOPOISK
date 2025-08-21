@@ -22,13 +22,6 @@ class Company {
 
   // Получение всех компаний
   static async findAll() {
-    console.log('🏢 Company.findAll() вызван');
-    
-    // Сначала проверим все компании без фильтра
-    const checkSql = 'SELECT id, name, status FROM companies';
-    const allCompanies = await database.all(checkSql);
-    console.log('📊 Все компании в БД:', allCompanies);
-    
     const sql = `
       SELECT c.*, 
              COUNT(u.id) as users_count
@@ -39,10 +32,7 @@ class Company {
       ORDER BY c.name
     `;
     
-    const result = await database.all(sql);
-    console.log('✅ Компании после фильтрации:', result);
-    
-    return result;
+    return await database.all(sql);
   }
 
   // Обновление компании
