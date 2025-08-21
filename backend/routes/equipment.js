@@ -506,6 +506,56 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
+// DELETE /api/equipment/:id - Удалить технику
+router.delete('/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    // Проверяем существование техники и права доступа
+    const existingEquipment = await Equipment.findById(id);
+    
+    if (!existingEquipment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Техника не найдена'
+      });
+    }
+    
+    // Проверяем права доступа
+    if (req.user.role !== 'admin' && req.user.id !== existingEquipment.owner_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Доступ запрещен'
+      });
+    }
+    
+    // Проверяем, что техника не используется в активных заявках
+    if (existingEquipment.status === 'busy') {
+      return res.status(400).json({
+        success: false,
+        message: 'Нельзя удалить технику, которая используется в активной заявке'
+      });
+    }
+    
+    const deleted = await Equipment.delete(id);
+    
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        message: 'Техника не найдена'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Техника удалена успешно'
+    });
+    
+  } catch (error) {
+    next(error);
+  }
+});
+
 // POST /api/equipment - Добавить технику (только владельцы)
 router.post('/',
   requireOwner,
@@ -649,55 +699,7 @@ router.patch('/:id/status', async (req, res, next) => {
   }
 });
 
-// DELETE /api/equipment/:id - Удалить технику
-router.delete('/:id', async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    
-    // Проверяем существование техники и права доступа
-    const existingEquipment = await Equipment.findById(id);
-    
-    if (!existingEquipment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Техника не найдена'
-      });
-    }
-    
-    // Проверяем права доступа
-    if (req.user.role !== 'admin' && req.user.id !== existingEquipment.owner_id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Доступ запрещен'
-      });
-    }
-    
-    // Проверяем, что техника не используется в активных заявках
-    if (existingEquipment.status === 'busy') {
-      return res.status(400).json({
-        success: false,
-        message: 'Нельзя удалить технику, которая используется в активной заявке'
-      });
-    }
-    
-    const deleted = await Equipment.delete(id);
-    
-    if (!deleted) {
-      return res.status(404).json({
-        success: false,
-        message: 'Техника не найдена'
-      });
-    }
-    
-    res.json({
-      success: true,
-      message: 'Техника удалена успешно'
-    });
-    
-  } catch (error) {
-    next(error);
-  }
-});
+
 
 // GET /api/equipment/search - Поиск техники по типу
 router.get('/search/by-type', async (req, res, next) => {
