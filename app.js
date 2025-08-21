@@ -183,8 +183,54 @@ window.deleteEquipment = async function(equipmentId) {
   }
 };
 
-window.editEquipment = function(equipmentId) {
-  alert('Функция редактирования будет добавлена в следующих версиях');
+window.editEquipment = async function(equipmentId) {
+  try {
+    console.log('Загружаем данные техники для редактирования:', equipmentId);
+    
+    // Получаем данные техники
+    const response = await apiRequest(`/equipment/${equipmentId}`);
+    if (!response.success) {
+      throw new Error(response.message);
+    }
+    
+    const equipment = response.equipment;
+    console.log('Данные техники получены:', equipment);
+    
+    // Заполняем форму редактирования
+    document.getElementById('edit-equipment-id').value = equipment.id;
+    document.getElementById('edit-equipment-name').value = equipment.name || '';
+    document.getElementById('edit-equipment-owner').value = equipment.owner_name || '';
+    document.getElementById('edit-equipment-phone').value = equipment.phone || '';
+    document.getElementById('edit-equipment-telegram').value = equipment.telegram_id || '';
+    document.getElementById('edit-equipment-plate').value = equipment.license_plate || '';
+    document.getElementById('edit-equipment-hourly-rate').value = equipment.hourly_rate || '';
+    document.getElementById('edit-equipment-daily-rate').value = equipment.daily_rate || '';
+    document.getElementById('edit-equipment-location').value = equipment.location || '';
+    document.getElementById('edit-equipment-offroad').checked = equipment.is_off_road || false;
+    document.getElementById('edit-equipment-additional').value = equipment.additional_equipment || '';
+    document.getElementById('edit-equipment-description').value = equipment.description || '';
+    
+    // Загружаем типы техники и устанавливаем значения
+    await loadEquipmentTypesForEdit();
+    
+    // Устанавливаем выбранный тип
+    const typeSelect = document.getElementById('edit-equipment-type');
+    typeSelect.value = equipment.type || '';
+    
+    // Загружаем подтипы для выбранного типа
+    if (equipment.type) {
+      await updateEditEquipmentSubtypes(equipment.type);
+      const subtypeSelect = document.getElementById('edit-equipment-subtype');
+      subtypeSelect.value = equipment.subtype || '';
+    }
+    
+    // Показываем модальное окно
+    showModal('edit-equipment-modal');
+    
+  } catch (error) {
+    console.error('Ошибка при загрузке данных техники:', error);
+    alert('Ошибка при загрузке данных техники: ' + error.message);
+  }
 };
 
 window.editUser = async function(userId) {
@@ -580,6 +626,47 @@ function updateEquipmentTypeSelects() {
   }
 }
 
+// Загрузка типов техники для формы редактирования
+async function loadEquipmentTypesForEdit() {
+  const response = await apiRequest('/equipment/equipment-types');
+  if (response.success) {
+    const editTypeSelect = document.getElementById('edit-equipment-type');
+    if (editTypeSelect) {
+      editTypeSelect.innerHTML = '<option value="">Выберите тип</option>';
+      Object.keys(response.data).forEach(type => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = type;
+        editTypeSelect.appendChild(option);
+      });
+    }
+  }
+}
+
+// Обновление подтипов в форме редактирования
+async function updateEditEquipmentSubtypes(selectedType) {
+  const subtypeSelect = document.getElementById('edit-equipment-subtype');
+  if (!subtypeSelect) return;
+  
+  if (!selectedType) {
+    subtypeSelect.innerHTML = '<option value="">Сначала выберите тип</option>';
+    subtypeSelect.disabled = true;
+    return;
+  }
+  
+  const response = await apiRequest('/equipment/equipment-types');
+  if (response.success && response.data[selectedType]) {
+    subtypeSelect.innerHTML = '<option value="">Выберите подтип</option>';
+    response.data[selectedType].forEach(subtype => {
+      const option = document.createElement('option');
+      option.value = subtype;
+      option.textContent = subtype;
+      subtypeSelect.appendChild(option);
+    });
+    subtypeSelect.disabled = false;
+  }
+}
+
 // Админский дашборд
 async function initAdminDashboard() {
   // Настраиваем табы сначала
@@ -740,6 +827,73 @@ function setupEditUserModal() {
       alert('Пользователь обновлен успешно');
     } catch (error) {
       alert('Ошибка при обновлении пользователя: ' + error.message);
+    }
+  };
+}
+
+// Настройка модального окна редактирования техники
+function setupEditEquipmentModal() {
+  const modal = document.getElementById('edit-equipment-modal');
+  const form = document.getElementById('edit-equipment-form');
+  
+  if (!modal || !form) {
+    console.warn('Элементы модального окна редактирования техники не найдены');
+    return;
+  }
+  
+  // Настройка кнопок закрытия
+  modal.querySelector('.modal-close').onclick = () => hideModal('edit-equipment-modal');
+  modal.querySelector('.modal-cancel').onclick = () => hideModal('edit-equipment-modal');
+  modal.querySelector('.modal-backdrop').onclick = () => hideModal('edit-equipment-modal');
+  
+  // Обработчик изменения типа техники
+  const typeSelect = document.getElementById('edit-equipment-type');
+  if (typeSelect) {
+    typeSelect.addEventListener('change', async (e) => {
+      const selectedType = e.target.value;
+      await updateEditEquipmentSubtypes(selectedType);
+    });
+  }
+  
+  // Обработка отправки формы
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    
+    const equipmentId = document.getElementById('edit-equipment-id').value;
+    const equipmentData = {
+      name: document.getElementById('edit-equipment-name').value.trim(),
+      phone: document.getElementById('edit-equipment-phone').value.trim(),
+      telegram_id: document.getElementById('edit-equipment-telegram').value.trim() || null,
+      license_plate: document.getElementById('edit-equipment-plate').value.trim() || null,
+      type: document.getElementById('edit-equipment-type').value,
+      subtype: document.getElementById('edit-equipment-subtype').value,
+      hourly_rate: document.getElementById('edit-equipment-hourly-rate').value || null,
+      daily_rate: document.getElementById('edit-equipment-daily-rate').value || null,
+      location: document.getElementById('edit-equipment-location').value.trim() || null,
+      is_off_road: document.getElementById('edit-equipment-offroad').checked,
+      additional_equipment: document.getElementById('edit-equipment-additional').value.trim() || null,
+      description: document.getElementById('edit-equipment-description').value.trim() || null
+    };
+    
+    try {
+      const response = await apiRequest(`/equipment/${equipmentId}`, {
+        method: 'PUT',
+        body: JSON.stringify(equipmentData)
+      });
+      
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      
+      // Обновляем отображение техники
+      await renderEquipmentGrid();
+      hideModal('edit-equipment-modal');
+      form.reset();
+      alert('Техника обновлена успешно');
+      
+    } catch (error) {
+      console.error('Ошибка при обновлении техники:', error);
+      alert('Ошибка при обновлении техники: ' + error.message);
     }
   };
 }
@@ -1421,6 +1575,7 @@ async function initOwnerDashboard() {
   await renderEquipmentGrid();
   await renderOwnerOrders();
   setupAddEquipmentModal();
+  setupEditEquipmentModal();
   setupOwnerTabs();
   setupRespondOrderModal();
   
@@ -2877,6 +3032,7 @@ document.addEventListener('DOMContentLoaded', function() {
   setupEditUserModal();
   setupCreateCompanyModal();
   setupEditCompanyModal();
+  setupEditEquipmentModal();
   setupAuctionResultsModal();
 
   // Добавляем демо уведомления для тестирования (только в dev-режиме)

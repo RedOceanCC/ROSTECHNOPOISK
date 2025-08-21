@@ -604,6 +604,90 @@
             </div>
         </div>
 
+        <!-- Модальное окно редактирования техники -->
+        <div id="edit-equipment-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content card">
+                <div class="modal-header">
+                    <h3>Редактировать технику</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <form id="edit-equipment-form" class="modal-body">
+                    <input type="hidden" id="edit-equipment-id">
+                    <div class="form-group">
+                        <label class="form-label">Название техники *</label>
+                        <input type="text" id="edit-equipment-name" class="form-control" placeholder="Например: Экскаватор Caterpillar 320D" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">ФИО владельца *</label>
+                            <input type="text" id="edit-equipment-owner" class="form-control" required readonly>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Контактный телефон *</label>
+                            <input type="tel" id="edit-equipment-phone" class="form-control" placeholder="+7 (999) 123-45-67" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Telegram ID</label>
+                            <input type="text" id="edit-equipment-telegram" class="form-control" placeholder="@username или ID">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Номерной знак</label>
+                            <input type="text" id="edit-equipment-plate" class="form-control" placeholder="А123БВ777">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Тип техники *</label>
+                            <select id="edit-equipment-type" class="form-control" required>
+                                <option value="">Выберите тип</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Подтип техники *</label>
+                            <select id="edit-equipment-subtype" class="form-control" disabled required>
+                                <option value="">Сначала выберите тип</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Цена за час (руб.)</label>
+                            <input type="number" id="edit-equipment-hourly-rate" class="form-control" placeholder="Цена за час" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Цена за день (руб.)</label>
+                            <input type="number" id="edit-equipment-daily-rate" class="form-control" placeholder="Цена за день" min="1">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Местоположение</label>
+                        <input type="text" id="edit-equipment-location" class="form-control" placeholder="Город, район">
+                    </div>
+                    <div class="form-group">
+                        <div class="form-checkbox">
+                            <input type="checkbox" id="edit-equipment-offroad">
+                            <label for="edit-equipment-offroad">Вездеходная техника</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Дополнительное оборудование</label>
+                        <textarea id="edit-equipment-additional" class="form-control" rows="3" placeholder="Например: гидромолот, быстросъёмное соединение, GPS"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Описание</label>
+                        <textarea id="edit-equipment-description" class="form-control" rows="4" placeholder="Детальная информация о технике"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn--secondary modal-cancel">Отмена</button>
+                        <button type="submit" class="btn btn--primary">Сохранить изменения</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- Модальное окно подачи ставки -->
         <div id="respond-order-modal" class="modal hidden">
             <div class="modal-backdrop"></div>
