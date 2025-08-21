@@ -228,9 +228,10 @@ router.delete('/:id', requireAdmin, async (req, res, next) => {
       });
     }
     
-    const deleted = await User.delete(id);
+    // Мягкое удаление - меняем статус на inactive вместо физического удаления
+    const updated = await User.update(id, { status: 'inactive' });
     
-    if (!deleted) {
+    if (!updated) {
       logger.error('Ошибка удаления пользователя из БД', {
         admin_id: req.user.id,
         admin_name: req.user.name,
@@ -244,8 +245,8 @@ router.delete('/:id', requireAdmin, async (req, res, next) => {
       });
     }
     
-    // Логируем успешное удаление
-    logger.info('Пользователь успешно удален', {
+    // Логируем успешное удаление (мягкое)
+    logger.info('Пользователь успешно деактивирован', {
       admin_id: req.user.id,
       admin_name: req.user.name,
       deleted_user_id: id,

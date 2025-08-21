@@ -573,7 +573,15 @@ async function renderUsersTable() {
     if (response.success) {
       tbody.innerHTML = '';
       
-      response.users.forEach(user => {
+      // Фильтруем только активных пользователей (скрываем удаленных)
+      const activeUsers = response.users.filter(user => user.status === 'active');
+      
+      if (activeUsers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">Нет активных пользователей</td></tr>';
+        return;
+      }
+      
+      activeUsers.forEach(user => {
         const row = document.createElement('tr');
         const statusLabel = user.status === 'active' ? 
           '<span class="badge badge--success">Активный</span>' : 
