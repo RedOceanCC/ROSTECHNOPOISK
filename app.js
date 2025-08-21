@@ -165,7 +165,7 @@ window.deleteUser = async function(userId) {
         await renderUsersTable();
         alert('Пользователь удален');
       } else {
-        alert('Ошибка при удалении пользователя: ' + error.message);
+      alert('Ошибка при удалении пользователя: ' + error.message);
       }
     }
   }

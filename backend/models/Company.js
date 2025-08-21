@@ -16,23 +16,33 @@ class Company {
 
   // Поиск компании по ID
   static async findById(id) {
-    const sql = 'SELECT * FROM companies WHERE id = ? AND status = \'active\'';
+    const sql = 'SELECT * FROM companies WHERE id = ? AND (status = \'active\' OR status IS NULL)';
     return await database.get(sql, [id]);
   }
 
   // Получение всех компаний
   static async findAll() {
+    console.log('🏢 Company.findAll() вызван');
+    
+    // Сначала проверим все компании без фильтра
+    const checkSql = 'SELECT id, name, status FROM companies';
+    const allCompanies = await database.all(checkSql);
+    console.log('📊 Все компании в БД:', allCompanies);
+    
     const sql = `
       SELECT c.*, 
              COUNT(u.id) as users_count
       FROM companies c
       LEFT JOIN users u ON c.id = u.company_id AND u.status = 'active'
-      WHERE c.status = 'active'
+      WHERE (c.status = 'active' OR c.status IS NULL)
       GROUP BY c.id
       ORDER BY c.name
     `;
     
-    return await database.all(sql);
+    const result = await database.all(sql);
+    console.log('✅ Компании после фильтрации:', result);
+    
+    return result;
   }
 
   // Обновление компании
