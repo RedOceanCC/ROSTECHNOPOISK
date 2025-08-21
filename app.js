@@ -573,8 +573,15 @@ async function renderUsersTable() {
     if (response.success) {
       tbody.innerHTML = '';
       
+      // Дебаг информация
+      console.log('Все пользователи с сервера:', response.users);
+      response.users.forEach(user => {
+        console.log(`Пользователь ${user.name}: статус = "${user.status}"`);
+      });
+      
       // Фильтруем только активных пользователей (скрываем удаленных)
       const activeUsers = response.users.filter(user => user.status === 'active');
+      console.log('Активные пользователи после фильтрации:', activeUsers);
       
       if (activeUsers.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center">Нет активных пользователей</td></tr>';
